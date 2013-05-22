@@ -1,3 +1,4 @@
+#!/usr/bin/env python
 from math import log as ln
 
 
@@ -28,14 +29,14 @@ def K(p, g, n):
 		d2 = 0.189269
 		d3 = 0.001308
 
-		return t - (c0 + c1 * t + c2 * t**2) / (1 + d1 * t + d2 * t ** 2 + d3 * t ** 3)
+		return t - (c0 + c1 * t + c2 * t**2) / (1 + d1 * t + d2 * t**2 + d3 * t**3)
 
 	zp = z(p)
 	zg = z(g)
 	f = 1/(4*(n - 1))
 
 	# split up the numerator / denominator of the equation, just for readability.
-	K_numer = zp * (1 - f) + (zp ** 2 * (1 - f) ** 2 - ((1-f)**2 - zg**2/(2*(n - 1))) * (zp**2 - zg**2/n)) ** (.5)
+	K_numer = zp * (1 - f) + (zp**2 * (1 - f)**2 - ((1-f)**2 - zg**2/(2*(n - 1))) * (zp**2 - zg**2/n))**(.5)
 	K_denom = (1 - f)**2 - zg**2 / (2*(n - 1))
 	
 	return K_numer / K_denom
