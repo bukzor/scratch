@@ -54,6 +54,11 @@ def K_scipy(p, g, n):
 	return nct.ppf(1-g, n-1, sqrt(n) * x_scipy(p)) / sqrt(n)
 
 
+def g_(p, n, K):
+	from scipy.stats import nct
+	return 1 - nct.cdf(sqrt(n) * K, n-1, sqrt(n) * x_scipy(p))
+
+
 def main():
 	for p, g, n, lieberman, equation_2, Guttman in (
 			(.10, .25,  10, 1.6154, 1.6683, 1.671),
@@ -66,8 +71,11 @@ def main():
 	):
 		basis = 0
 		print ' '.join(
-				'% -8g' % x for x in (
-					p, g, n,
+				'% -12.7g' % x for x in (
+					p,
+					g,
+					(g_(p, n, K_scipy(p, g, n)) - g)/g,
+					n,
 					lieberman - basis,
 					equation_2 - basis,
 					Guttman - basis,
