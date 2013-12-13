@@ -1,2 +1,4 @@
 .*.sw[a-z]
 *.py[co]
+tmp
+*.tmp
