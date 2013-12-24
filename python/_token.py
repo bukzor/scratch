@@ -1,83 +1,93 @@
+# I0011: disabling locally
+# C0301: line too long
+# W0111: missing docstring
+# C0103: invalid class name
+# pylint:disable=I0011,C0301,C0111,C0103
 try:
-	from buck.pprint import pprint, pformat
-	pprint, pformat # pyflakes, wat
+    from buck.pprint import pformat
 except ImportError:
-	from pprint import pprint, pformat
-	pprint, pformat # pyflakes, wat
+    from pprint import pformat
+
+def pudb():
+    from pudb import set_trace
+    set_trace()
 
 class tokenType(type):
-	children = ()
-	properties = {}
+    children = ()
+    properties = {}
 
-	def __repr__(cls):
-		return pformat(cls.__primitive__())
+    def __repr__(cls):
+        return pformat(cls.__primitive__())
 
-	@classmethod
-	def __primitive__(cls):
-		# This is (so far) primarily to make the structure easily viewable for debugging.
-		result = (cls.__name__,)
-		if cls.children:
-			result += tuple(cls.children)
-		if cls.properties:
-			result += (cls.properties,)
-		return result
+    @classmethod
+    def __primitive__(mcs):
+        # This is (so far) primarily to make the structure easily viewable for debugging.
+        result = (mcs.__name__,)
+        if mcs.children:
+            result += tuple(mcs.children)
+        if mcs.properties:
+            result += (mcs.properties,)
+        return result
 
-	def __eq__(cls, other):
-		return cls.__primitive__() == other.__primitive__()
+    def __eq__(cls, other):
+        return cls.__primitive__() == other.__primitive__()
+    def __ne__(cls, other):
+        return cls.__primitive__() != other.__primitive__()
+    def __len__(cls):
+        return len(cls.children)
+    def __iter__(cls):
+        return iter(cls.children)
+
+    # Be immutable.
+    def __setattr__(cls, key, value=None):
+        raise TypeError("{name} objects are read-only".format(name=type(cls).__name__))
+    def __delattr__(cls, key):
+        raise TypeError("{name} objects are read-only".format(name=type(cls).__name__))
+
 
 class token(tokenType):
-	__metaclass__ = tokenType
+    __metaclass__ = tokenType
 
-	def __new__(cls, *children, **properties):
-		# Make a copy, with altered children / properties
-		if not children:
-			children = cls.children
+    def __new__(mcs, *children, **properties):
+        # Make a copy, with altered children and/or properties attributes.
+        attrs = {}
+        if children:
+            attrs['children'] = children
 
-		if properties:
-			tmp = properties
-			properties = cls.properties.copy()
-			properties.update(tmp)
-			del tmp
-		else:
-			properties = cls.properties
+        if properties:
+            attrs['properties'] = mcs.properties.copy()
+            attrs['properties'].update(properties)
 
-		cls_copy = super(token, cls).__new__(
-				type(cls),
-				cls.__name__,
-				cls.__bases__,
-				dict(
-					children=children,
-					properties=properties,
-				),
-		)
-		return cls_copy
+        # Seems like a good idea. Makes things worse.
+        #if not attrs:
+            ## trivial copy
+            #return mcs
 
-	def __init__(cls, *children, **properties):
-		pass
-	
-	# Be immutable.
-	def __setattr__(self, key, value=None):
-		raise TypeError("{name} objects are read-only".format(name=type(self).__name__))
-	def __delattr__(self, key):
-		raise TypeError("{name} objects are read-only".format(name=type(self).__name__))
+        # maybe? doesn't seem to work.
+        #mcs_copy2 = super(token, mcs).__new__(
+                ## Inherit attributes of the copied class
+                #type(mcs),
+                #mcs.__name__,
+                #mcs.__bases__,
+                #attrs,
+        #)
+        mcs_copy = super(token, mcs).__new__(
+                # Inherit attributes of the copied class
+                mcs,
+                mcs.__name__,
+                (mcs,),
+                attrs,
+        )
+        return mcs_copy
 
+    def __init__(cls, *children, **properties):
+        del children, properties
+        # The `type` initializer takes quite different arguments.
+        # SMELL: Replace these three values with None and all tests still pass...
+        super(token, cls).__init__(cls, cls.__name__, cls.__bases__, cls.__dict__)
 
-class goat(token):
-	pass
-
-
-token2 = token(
-		goat(a=1),
-		goat(b=2),
-)
-
-print 'token1:', token
-print token.__bases__
-print 'token2:', token2
-print token2.__bases__
-
-assert issubclass(goat, token)
-assert issubclass(goat(), token)
-
-#import pudb; pudb.set_trace()
-assert goat == goat()
+    # Be immutable.
+    def __setattr__(cls, key, value=None):
+        raise TypeError("{name} objects are read-only".format(name=type(cls).__name__))
+    def __delattr__(cls, key):
+        raise TypeError("{name} objects are read-only".format(name=type(cls).__name__))
