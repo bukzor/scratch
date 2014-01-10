@@ -46,6 +46,7 @@ class tokenType(type):
 
 
 class token(tokenType):
+    """The most generic token."""
     __metaclass__ = tokenType
 
     def __new__(mcs, *children, **properties):
