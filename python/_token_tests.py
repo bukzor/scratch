@@ -1,24 +1,24 @@
 #!/usr/bin/env python
 """tests for the token class"""
 # I0011: disabling locally
-# C0111: missing docstring
 # C0103: invalid class name
-# pylint:disable=I0011,C0103
+# R0903: too few methods
+# R0201: method could be a function
+# pylint:disable=I0011,C0103,R0903,R0201
 
 from _token import token
-from unittest import TestCase
+import unittest as T
 
-class TokenTests(TestCase):
+class TokenTest(T.TestCase):
     """tests for the token class"""
     # R0904: too many methods
-    # R0201: method could be a function
-    # pylint:disable=R0904,R0201
+    # pylint:disable=R0904
     def test_has_simple_repr(self):
         """token classes should have a simple representation"""
         assert str(token) == "('token',)"
         # a copy of token
         token2 = token(a=1)
-        assert repr(token2),"('token',)"
+        assert repr(token2) == "('token', {'a': 1})", repr(token2)
         class token3(token):
             """a subclass of `token'"""
             pass
@@ -28,12 +28,12 @@ class TokenTests(TestCase):
         """Two tokens that are indistinguishable are equal."""
         class Animal(token):
             """A token for animals."""
-        a1 = Animal
+        a1 = Animal()
         # E0102: class already defined
         # pylint:disable=E0102
         class Animal(token):
             """A somewhat different token for animals."""
-        a2 = Animal
+        a2 = Animal()
 
         assert a1 == a2
 
@@ -44,12 +44,14 @@ class TokenTests(TestCase):
 
         assert a1 != a3 != a2
 
-        class Animal(a2):
+        class Animal(Animal):
             """Yet another Animal token."""
             children = (token, token)
 
-        assert a3 == Animal
         assert a1 != Animal != a2
+
+        assert a3 == Animal()
+        assert a1 != Animal() != a2
 
     def test_subclasses(self):
         """show that token subclasses have good isinstance() behavior"""
@@ -93,14 +95,14 @@ class TokenTests(TestCase):
     def test_default_children(self):
         """show that subclasses can specify default children"""
         class bread(token):
-            """The bread token."""
+            """A token representing bread."""
         class cheese(token):
-            """The cheese token."""
+            """A token representing cheese."""
         class meat(token):
-            """The meat token."""
+            """A token representing meat."""
 
         class Sandwich(token):
-            """The Sandwich token."""
+            """A token representing a Sandwich."""
             children = (
                 bread,
                 cheese,
@@ -109,7 +111,7 @@ class TokenTests(TestCase):
             )
 
         class GrilledCheese(Sandwich):
-            """The GrilledCheese token."""
+            """A GrilledCheese is a special Sandwich."""
             children = (
                 bread,
                 cheese,
@@ -132,24 +134,84 @@ class TokenTests(TestCase):
         class goat(mammal):
             """A goat is a mammal."""
 
+        assert issubclass(mammal, token)
+        assert issubclass(goat, token)
+        assert issubclass(goat, mammal)
+        assert issubclass(goat, goat)
+
+        assert isinstance(mammal(), token)
+        assert isinstance(goat(), token)
+        assert isinstance(goat(), mammal)
+
+        assert isinstance(goat(), goat)
+        # I got this wrong once.
+        assert isinstance(goat(1, 2, 3), goat)
+
+
+class MetaTokenTest(T.TestCase):
+    """Disabled test for tokenType"""
+    __test__ = True
+    def test_issubclass(self):
+        """Demonstrate issubclass behavior with tokenType."""
+        class mammal(token):
+            """The mammal token."""
+        class goat(mammal):
+            """A goat is a mammal."""
 
         assert repr(token) == repr(token())
         assert type.mro(token) == type.mro(token())[1:]
 
-        assert issubclass(mammal, token)
         assert issubclass(mammal(), token)
-        assert issubclass(goat, token)
         assert issubclass(goat(), token)
-        assert issubclass(goat, mammal)
         assert issubclass(goat(), mammal)
 
-        assert issubclass(goat, goat)
         assert issubclass(goat(), goat)
         # I got this wrong once.
         assert issubclass(goat(1, 2, 3), goat)
         assert not issubclass(goat(1, 2, 3), goat(1, 2))
 
         assert goat == goat()
+
+    def test_repr(self):
+        """token classes should have a simple representation"""
+        assert str(token) == "('token',)"
+        # a copy of token
+        token2 = token(a=1)
+        assert repr(token2) == "('token', {'a': 1})", repr(token2)
+        class token3(token):
+            """a subclass of `token'"""
+            pass
+        assert repr(token3) == "('token3',)"
+
+    def test_eq(self):
+        """Two tokens that are indistinguishable are equal."""
+        class Animal(token):
+            """A token for animals."""
+        a1 = Animal
+        # E0102: class already defined
+        # pylint:disable=E0102
+        class Animal(token):
+            """A somewhat different token for animals."""
+        a2 = Animal
+
+        assert a1 == a2
+
+        a3 = a1(
+                token,
+                token,
+        )
+
+        assert a1 != a3 != a2
+
+        class Animal(Animal):
+            """Yet another Animal token."""
+            children = (token, token)
+
+        assert a3 == Animal
+        assert a1 != Animal != a2
+
+        assert a3 == Animal()
+        assert a1 != Animal() != a2
 
 if __name__ == '__main__':
     import pytest
