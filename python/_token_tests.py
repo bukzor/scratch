@@ -15,20 +15,25 @@ class TokenTest(T.TestCase):
     # pylint:disable=R0904
     def test_has_simple_repr(self):
         """token classes should have a simple representation"""
-        assert str(token) == "('token',)"
+        assert str(token) == "('token',)", str(token)
         # a copy of token
         token2 = token(a=1)
         assert repr(token2) == "('token', {'a': 1})", repr(token2)
         class token3(token):
             """a subclass of `token'"""
             pass
-        assert repr(token3) == "('token3',)"
+        assert repr(token3) == "('token3',)", str(token3)
 
     def test_eq(self):
         """Two tokens that are indistinguishable are equal."""
         class Animal(token):
             """A token for animals."""
         a1 = Animal()
+
+        # demo comparison with non-token types
+        assert a1 != 'wat'
+        assert (a1 == 'wat') is False
+
         # E0102: class already defined
         # pylint:disable=E0102
         class Animal(token):
@@ -83,14 +88,15 @@ class TokenTest(T.TestCase):
         assert len(tree) == 2
         assert tree
 
-        tree = tuple(tree)
-        assert len(tree) == 2
         # Demo __iter__
         for child in tree:
             assert isinstance(child, thing)
             assert len(child) == 0
             assert tuple(child) == ()
             assert not child
+
+        tree = tuple(tree)
+        assert len(tree) == 2
 
     def test_default_children(self):
         """show that subclasses can specify default children"""
@@ -126,6 +132,16 @@ class TokenTest(T.TestCase):
 
         assert isinstance(grilled_cheese, Sandwich)
 
+    def test_default_properties(self):
+        class colors(token):
+            """a token for colors"""
+            properties = {'black':0, 'white':1}
+
+        c = colors()
+        assert c.properties == {'black':0, 'white':1}, dict(c.properties)
+
+        c = colors(red=3)
+        assert c.properties == {'black':0, 'white':1, 'red':3}, dict(c.properties)
 
     def test_main(self):
         """Demonstrate some basic token functionalities."""
@@ -146,6 +162,59 @@ class TokenTest(T.TestCase):
         assert isinstance(goat(), goat)
         # I got this wrong once.
         assert isinstance(goat(1, 2, 3), goat)
+
+    def test_no_attributes(self):
+        t = token()
+        try:
+            t.x = 1
+        except TypeError, error:
+            pass
+        else:
+            error = None
+        assert error, t.x
+
+        try:
+            del t.properties
+        except TypeError, error:
+            pass
+        else:
+            error = None
+        assert error, t.__dict__.get('properties')
+
+
+class QuestionableFeatures(T.TestCase):
+    """
+    I might decide to delete these features later,
+    but this is how they work at this moment.
+    """
+    def test_copy(self):
+        """secondary interface for copying tokens"""
+        t1 = token()
+        t2 = t1.copy()
+        assert t1 == t2, (t1, t2)
+
+    def test_generator_support(self):
+        """This will naturally go away if i factor out .copy"""
+        t1 = token()
+        t3 = t1.copy(children=(token() for i in range(3)))
+        assert len(t3.children) == 3
+        assert type(t3.children) is tuple
+
+        t4 = t1.copy(properties=((i, i) for i in range(3)))
+        assert len(t4.properties) == 3
+        from collections import Mapping
+        assert isinstance(t4.properties, Mapping)
+
+    def test_default_property_deletion(self):
+        class MyToken(token):
+            "an example with a default property"
+            properties = {'a':1}
+
+        m1 = MyToken()
+        assert len(m1.properties) == 1
+
+        m1 = MyToken(a=token.undefined)
+        assert len(m1.properties) == 0, dict(m1.properties)
 
 
 class MetaTokenTest(T.TestCase):
