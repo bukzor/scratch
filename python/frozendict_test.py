@@ -1,8 +1,9 @@
-import testify as T
+import testify.assertions as T
+from unittest import TestCase
 
 from frozendict import FrozenDict
 
-class FrozenDictTest(T.TestCase):
+class FrozenDictTestCase(TestCase):
     def test_is_immutable(self):
         fd = FrozenDict(a=1)
         T.assert_equal(fd['a'], 1)
@@ -99,4 +100,5 @@ class FrozenDictTest(T.TestCase):
 
 
 if __name__ == '__main__':
-    T.run()
+    from testify import run
+    run()
