@@ -3,6 +3,8 @@
 # W0111: missing docstring
 # C0103: invalid class name
 # pylint:disable=I0011,C0301,C0111,C0103
+from frozendict import FrozenDict as fdict
+
 try:
     from buck.pprint import pformat
 except ImportError:
@@ -14,7 +16,7 @@ def pudb():
 
 class tokenType(type):
     children = ()
-    properties = {}
+    properties = fdict()
     undefined = object()
 
     def __repr__(cls):
@@ -27,7 +29,7 @@ class tokenType(type):
         if mcs.children:
             result += tuple(mcs.children)
         if mcs.properties:
-            result += (mcs.properties,)
+            result += (dict(mcs.properties),)
         return result
 
     def __eq__(cls, other):
@@ -53,9 +55,8 @@ class tokenType(type):
             attrs['children'] = tuple(children)
 
         if properties:
-            attrs['properties'] = mcs.properties.copy()
-            attrs['properties'].update(properties)
-            attrs['properties'] = dict(
+            attrs['properties'] = fdict(mcs.properties).update(properties)
+            attrs['properties'] = fdict(
                     (key, val)
                     for key, val in attrs['properties'].items()
                     if val is not token.undefined

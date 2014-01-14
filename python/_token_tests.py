@@ -163,23 +163,49 @@ class TokenTest(T.TestCase):
         # I got this wrong once.
         assert isinstance(goat(1, 2, 3), goat)
 
-    def test_no_attributes(self):
-        t = token()
-        try:
-            t.x = 1
-        except TypeError, error:
-            pass
-        else:
-            error = None
-        assert error, t.x
+    def test_no_class_attributes(self):
+        t = token(token, a=1)
+        with assert_raises_exactly(TypeError, 'token objects are read-only'):
+            t.properties = {'b':2}
 
-        try:
-            del t.properties
-        except TypeError, error:
-            pass
-        else:
-            error = None
-        assert error, t.__dict__.get('properties')
+        with assert_raises_exactly(TypeError, 'token objects are read-only'):
+            del t.children
+
+    def test_no_object_attributes(self):
+        t = token(token, a=1)
+        with assert_raises_exactly(TypeError, 'token objects are read-only'):
+            t.properties = {'b':2}
+
+        with assert_raises_exactly(TypeError, 'token objects are read-only'):
+            del t.children
+
+    def test_class_attrs_immutable(self):
+        with assert_raises_exactly(
+                TypeError,
+                "'FrozenDict' object does not support item assignment",
+        ):
+            token.properties['b'] = 2
+
+        with assert_raises_exactly(
+                AttributeError,
+                "'tuple' object has no attribute 'append'",
+        ):
+            token.children.append('wat')
+
+    def test_object_attrs_immutable(self):
+        t = token(token, a=1)
+        with assert_raises_exactly(
+                TypeError,
+                "'FrozenDict' object does not support item assignment",
+        ):
+            t.properties['b'] = 2
+
+        with assert_raises_exactly(
+                AttributeError,
+                "'tuple' object has no attribute 'append'",
+        ):
+            t.children.append('wat')
+
 
 
 class QuestionableFeatures(T.TestCase):
@@ -281,6 +307,19 @@ class MetaTokenTest(T.TestCase):
 
         assert a3 == Animal()
         assert a1 != Animal() != a2
+
+from contextlib import contextmanager
+@contextmanager
+def assert_raises_exactly(exception_type, *args, **attrs):
+    try:
+        yield
+    except Exception, exception:
+        assert type(exception) is exception_type, type(exception)
+        assert exception.args == args, exception.args
+        assert exception.__dict__ == attrs, exception.__dict__
+    else:
+        raise AssertionError('No exception raised!')
+
 
 if __name__ == '__main__':
     import pytest
