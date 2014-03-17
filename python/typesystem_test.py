@@ -18,32 +18,52 @@ def pytest_generate_tests(metafunc):
         )
 
 
-def test_class_type(type_, class_):
-    assert type(class_) is type_
+def assert_instance(type_, class_, obj):
+    assert type(obj) is class_
+    assert type(type(obj)) is type_
 
 
 def test_obj_type(type_, class_):
     obj = class_()
-    assert type(obj) is class_
-    assert type(type(obj)) is type_
+
+    assert_instance(type_, class_, obj)
+
+
+def test_class_type(type_, class_):
+    assert type(class_) is type_
+
+
+def assert_subclass(type_, class_, subclass):
+    assert issubclass(subclass, class_)
+
+    test_obj_type(type_, subclass)
+    test_class_type(type_, subclass)
 
 
 def test_subclass(type_, class_):
     class subclass(class_):
         pass
 
-    assert issubclass(subclass, class_)
-
-    test_class_type(type_, subclass)
-    test_obj_type(type_, subclass)
+    assert_subclass(type_, class_, subclass)
 
 
-if True:
-    def test_instantiate_a_classobj(type_, classobj):
-        A = classobj()
-        test_obj_type(classobj, A)
-else:
-    def test_subclass_a_classobj(type_, classobj):
-        A = classobj()
+def test_instantiate_a_subclass(type_, class_):
+    class subclass(class_):
+        pass
 
-        test_subclass(type_, A)
+    obj = subclass()
+
+    assert_instance(type_, subclass, obj)
+
+
+def test_subclass_a_subclass(type_, class_):
+    class subclass(class_):
+        pass
+
+    test_subclass(type_, subclass)
+
+
+def test_subclass_a_classobj(type_, classobj):
+    subclass = classobj()
+
+    test_subclass(classobj, subclass)
