@@ -1,15 +1,43 @@
+"""
+python class2dot.py | dot -Tsvg | ssh people 'cat > public_html/class2dot/type.svg'
+"""
 #pylint:disable=missing-docstring, too-few-public-methods
 class DotGraph(object):
     styles = ()
     components = set()
 
 
-def class2dot(cls):
+def Edges():
     class Edges(object):
         isinstance = set()
         issubclass = set()
+    return Edges
 
-    return _class2dot(cls, edges=Edges)
+
+def class2dot(cls):
+    edges = _class2dot(cls, edges=Edges())
+
+    print '''\
+digraph G {
+  compound=true;
+  subgraph isinstance {'''
+
+    for edge in edges.isinstance:
+        print '    "%s" -> "%s"' % (name(edge[1]), name(edge[0]))
+
+    print '''\
+  }
+  subgraph issubclass {
+    edge [color=red, constraint=false];'''
+
+    for edge in edges.issubclass:
+        print '    "%s" -> "%s"' % (name(edge[1]), name(edge[0]))
+
+    print '''\
+  }
+}'''
+
+    return edges
 
 
 def _class2dot(cls, edges):
@@ -37,9 +65,13 @@ def name(obj):
     else:
         raise NotImplementedError(repr(obj))
 
+    return '.'.join(parts)
+
 
 def main():
     type_edges = class2dot(type)
+    return
+
     object_edges = class2dot(object)
 
     assert type_edges.isinstance == object_edges.isinstance
