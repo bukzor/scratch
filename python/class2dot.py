@@ -7,36 +7,41 @@ class DotGraph(object):
     components = set()
 
 
-def Edges():
-    class Edges(object):
-        isinstance = set()
-        issubclass = set()
-    return Edges
+class Edges(object):
+    def __init__(self):
+        self.isinstance = set()
+        self.issubclass = set()
 
-
-def class2dot(cls):
-    edges = _class2dot(cls, edges=Edges())
-
-    print '''\
+    def __str__(self):
+        result = '''\
 digraph G {
   compound=true;
-  subgraph isinstance {'''
+  subgraph isinstance {
+    edge [color=red, constraint=false, spline=spline];
+'''
 
-    for edge in edges.isinstance:
-        print '    "%s" -> "%s"' % (name(edge[1]), name(edge[0]))
+        for edge in sorted(self.isinstance):
+            result += '    "%s" -> "%s"\n' % (name(edge[1]), name(edge[0]))
 
-    print '''\
+        result += '''\
   }
   subgraph issubclass {
-    edge [color=red, constraint=false];'''
+'''
 
-    for edge in edges.issubclass:
-        print '    "%s" -> "%s"' % (name(edge[1]), name(edge[0]))
+        for edge in sorted(self.issubclass):
+            result += '    "%s" -> "%s"\n' % (name(edge[1]), name(edge[0]))
 
-    print '''\
+        result += '''\
   }
-}'''
+}
+'''
+        return result
 
+
+def class2dot(*classes):
+    edges = Edges()
+    for cls in classes:
+        _class2dot(cls, edges=edges)
     return edges
 
 
@@ -68,15 +73,39 @@ def name(obj):
     return '.'.join(parts)
 
 
-def main():
+def test():
     type_edges = class2dot(type)
-    return
-
     object_edges = class2dot(object)
 
     assert type_edges.isinstance == object_edges.isinstance
     assert type_edges.issubclass == object_edges.issubclass
     print 'OK'
+
+
+def main():
+    from sys import argv
+    print class2dot(*tuple(
+        import_class(classname)
+        for classname in argv[1:]
+    ))
+
+
+def import_class(class_string):
+    """Return the class object specified by a string.
+
+    Args:
+        class_string: The string representing a class.
+
+    Raises:
+        ValueError if module part of the class is not specified.
+    """
+    # From: http://stackoverflow.com/a/3610097/146821
+    module_name, _, class_name = class_string.rpartition('.')
+    return getattr(
+        __import__(module_name, fromlist=["__trash"]),
+        class_name,
+    )
+
 
 if __name__ == '__main__':
     exit(main())
