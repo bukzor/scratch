@@ -1,5 +1,6 @@
 # pylint:disable=missing-docstring,too-few-public-methods,no-init,invalid-name
 from classobject2 import Class, Object
+from _token import tokenType, token
 
 
 class DummyObject(object):
@@ -19,16 +20,22 @@ def pytest_generate_tests(metafunc):
             "type_,class_", [
                 (type, object),
                 (Class, Object),
+                #(tokenType, token),
             ],
         )
 
 
 def assert_instance(type_, class_, obj, **attrs):
-    for attr, val in attrs.items():
-        assert getattr(obj, attr) == val
+    try:
+        for attr, val in attrs.items():
+            assert getattr(obj, attr) == val
 
-    assert type(obj) is class_
-    assert type(type(obj)) is type_
+        assert type(obj) is class_
+        assert type(type(obj)) is type_
+    except:
+        from class2dot import class2dot
+        print class2dot(obj)
+        raise
 
 
 def test_instantiate(type_, class_, **attrs):
@@ -57,20 +64,29 @@ def test_subclassing(type_, class_):
             return 2
 
     assert_subclass(type_, class_, subclass, one=1, two=2)
+    assert_instance(type(type_), type_, subclass, one=1)
 
 
 def test_instantiate_a_subclass(type_, class_):
     class subclass(class_):
-        pass
+        one = 1
+
+        @property
+        def two(self):
+            return 2
 
     obj = subclass()
 
-    assert_instance(type_, subclass, obj)
+    assert_instance(type_, subclass, obj, one=1, two=2)
 
 
 def test_subclass_a_subclass(type_, class_):
     class subclass(class_):
-        pass
+        @property
+        def one(self):
+            return 2
+
+        two = 1
 
     test_subclassing(type_, subclass)
 
@@ -79,3 +95,20 @@ def test_subclass_a_classobj(type_, classobj):
     subclass = classobj()
 
     test_subclassing(classobj, subclass)
+
+
+def test_classobj_properties(type_, classobj):
+    class subclass(classobj):
+        one = 1
+
+        @property
+        def two(self):
+            return 2
+
+    assert_instance(
+        type_, 
+        type(subclass),
+        subclass,
+        one=1,
+        two=2,
+    )
