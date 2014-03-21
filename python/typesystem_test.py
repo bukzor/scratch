@@ -68,27 +68,27 @@ def test_subclassing(type_, class_):
 
 
 def test_instantiate_a_subclass(type_, class_):
-    class subclass(class_):
+    class subclass2(class_):
         one = 1
 
         @property
         def two(self):
             return 2
 
-    obj = subclass()
+    obj = subclass2()
 
-    assert_instance(type_, subclass, obj, one=1, two=2)
+    assert_instance(type_, subclass2, obj, one=1, two=2)
 
 
 def test_subclass_a_subclass(type_, class_):
-    class subclass(class_):
+    class subclass3(class_):
         @property
         def one(self):
             return 2
 
         two = 1
 
-    test_subclassing(type_, subclass)
+    test_subclassing(type_, subclass3)
 
 
 def test_subclass_a_classobj(type_, classobj):
@@ -98,7 +98,7 @@ def test_subclass_a_classobj(type_, classobj):
 
 
 def test_classobj_properties(type_, classobj):
-    class subclass(classobj):
+    class subclass4(classobj):
         one = 1
 
         @property
@@ -107,8 +107,8 @@ def test_classobj_properties(type_, classobj):
 
     assert_instance(
         type_, 
-        type(subclass),
-        subclass,
+        type(subclass4),
+        subclass4,
         one=1,
         two=2,
     )

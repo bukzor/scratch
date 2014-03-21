@@ -1,55 +1,45 @@
 # pylint:disable=missing-docstring
 class Class(type):
     def __new__(mcs, name, bases, attrs):
-        try:
-            base = super(Class, mcs).__new__(
-                mcs,
-                name + 'Class',
-                mcs.__bases__,
-                attrs,
-            )
-        except:
-            from class2dot import class2dot
+        return super(Class, mcs).__new__(
+            mcs,
+            name + 'Class',
+            bases,
+            attrs,
+        )
 
-            print class2dot(mcs)
-            raise
-
-        try:
-            return type.__new__(
-                base,
-                name + 'Object',
-                bases,
-                {},
-            )
-        except:
-            from class2dot import class2dot
-
-            print class2dot(base, *bases)
-            raise
+    def __getattribute__(cls, attr):
+        "Emulate type_getattro() in Objects/typeobject.c"
+        val = type.__getattribute__(cls, attr)
+        if hasattr(val, '__get__'):
+            return val.__get__(None, type(cls))
+        else:
+            return val
 
 
 class Object(Class):
     __metaclass__ = Class
 
     def __init__(cls, *args):
-        #raise NotImplementedError('classobj init')
-        pass
+        del args
+        # type.__init__ is a noop as far as I can tell, but it makes pylint happy.
+        super(Object, cls).__init__(cls, None, None, None)
 
-    def __new__(cls, name=None, bases=None, attrs=None):
+    def __new__(mcs, name=None, bases=None, attrs=None):
         if name is bases is attrs is None:
-            return cls.__instance()
+            return mcs.__instance()
         else:
-            return Class.__new__(cls, name, bases, attrs)
+            return super(Object, mcs).__new__(mcs, name, bases, attrs)
 
     def __call__(cls):
         return cls.__instance()
 
     @classmethod
-    def __instance(cls):
+    def __instance(mcs):
         return Class.__new__(
             # Type of ObjectSubNew should be ObjectSub
-            cls,
-            cls.__name__ + 'New',
-            (cls,),
-            cls.__dict__.copy(),
+            mcs,
+            mcs.__name__ + 'New',
+            (mcs,),
+            mcs.__dict__.copy(),
         )
