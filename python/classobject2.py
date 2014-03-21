@@ -1,20 +1,20 @@
 # pylint:disable=missing-docstring
 class Class(type):
-    def __new__(mcs, name, bases, attrs):
-        return super(Class, mcs).__new__(
-            mcs,
-            name + 'Class',
-            bases,
-            attrs,
-        )
-
     def __getattribute__(cls, attr):
-        "Emulate type_getattro() in Objects/typeobject.c"
+        """Emulate type_getattro() in Objects/typeobject.c,
+        except descriptors can be bound to classes too.
+        """
         val = type.__getattribute__(cls, attr)
         if hasattr(val, '__get__'):
-            return val.__get__(None, type(cls))
+            if attr == '__new__':
+                # python specifies type.__new__ as a special case. sadface.
+                # Otherwise you get the metaclass as the first *two* arguments.
+                result = val.__get__(None, type(cls))
+            else:
+                result = val.__get__(cls, type(cls))
         else:
-            return val
+            result = val
+        return result
 
 
 class Object(Class):
@@ -31,15 +31,12 @@ class Object(Class):
         else:
             return super(Object, mcs).__new__(mcs, name, bases, attrs)
 
-    def __call__(cls):
-        return cls.__instance()
-
     @classmethod
     def __instance(mcs):
-        return Class.__new__(
-            # Type of ObjectSubNew should be ObjectSub
+        """Create a new class, very much like this one, but with different attr."""
+        return super(Object, mcs).__new__(
             mcs,
-            mcs.__name__ + 'New',
-            (mcs,),
+            mcs.__name__,
+            (Object,),
             mcs.__dict__.copy(),
         )

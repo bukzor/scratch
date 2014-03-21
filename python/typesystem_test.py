@@ -106,8 +106,8 @@ def test_classobj_properties(type_, classobj):
             return 2
 
     assert_instance(
-        type_, 
-        type(subclass4),
+        type, 
+        type_,
         subclass4,
         one=1,
         two=2,
