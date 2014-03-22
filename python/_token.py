@@ -15,6 +15,7 @@ def pudb():
     set_trace()
 
 class tokenType(type):
+    """The type for token classes."""
     children = ()
     properties = fdict()
     undefined = object()
@@ -35,44 +36,49 @@ class tokenType(type):
         if isinstance(other, tokenType):
             return cls.__primitive__() == other.__primitive__()
         else:
-            return False
+            return NotImplemented
+
     def __ne__(cls, other):
         if isinstance(other, tokenType):
             return cls.__primitive__() != other.__primitive__()
         else:
-            return True
+            return NotImplemented
+
     def __len__(cls):
         return len(cls.children)
+
     def __iter__(cls):
         return iter(cls.children)
 
-    def copy(mcs, children=(), properties=None):
+    def copy(mcs, children=None, properties=None):
+        """Return an (altered) copy of this object."""
         # Make a copy, with altered children and/or properties attributes.
-        attrs = vars(mcs).copy()
+        attrs = mcs.__dict__.copy()
 
-        if children:
+        if children is not None:
             attrs['children'] = tuple(children)
 
         if properties:
             attrs['properties'] = fdict(mcs.properties).update(properties)
             attrs['properties'] = fdict(
-                    (key, val)
-                    for key, val in attrs['properties'].items()
-                    if val is not token.undefined
+                (key, val)
+                for key, val in attrs['properties'].items()
+                if val is not token.undefined
             )
 
         mcs_copy = super(tokenType, mcs).__new__(
-                # Inherit attributes of the copied class
-                mcs,
-                mcs.__name__,
-                (token,),
-                attrs,
+            # Inherit attributes of the copied class
+            mcs,
+            mcs.__name__,
+            (token,),
+            attrs,
         )
         return mcs_copy
 
     # Be immutable.
     def __setattr__(cls, key, value=None):
         raise TypeError("{name} objects are read-only".format(name=type(cls).__name__))
+
     def __delattr__(cls, key):
         raise TypeError("{name} objects are read-only".format(name=type(cls).__name__))
 
@@ -95,11 +101,13 @@ class tokenType(type):
 
 
 class token(tokenType):
-    """The most generic token."""
+    """A generic object representing *something*, specified at a higher level."""
     __metaclass__ = tokenType
 
     def __new__(mcs, *children, **properties):
-        if (
+        if not children:
+            return mcs.copy(None, properties)
+        elif (
                 not properties and
                 len(children) == 3 and
                 type(children[0]) is str and
@@ -107,6 +115,7 @@ class token(tokenType):
                 type(children[2]) is dict
         ):
             # used as the metaclass of a class
+            #FIXME: I wish there were a better way to differentiate these cases.
             return super(token, mcs).__new__(mcs, *children)
         else:
             # instantiated, like a plain-old object.
