@@ -22,7 +22,6 @@ class tokenType(type):
     def __repr__(cls):
         return pformat(cls.__primitive__())
 
-    @classmethod
     def __primitive__(mcs):
         # This is (so far) primarily to make the structure easily viewable for debugging.
         result = (mcs.__name__,)
@@ -47,10 +46,10 @@ class tokenType(type):
     def __iter__(cls):
         return iter(cls.children)
 
-    @classmethod
     def copy(mcs, children=(), properties=None):
         # Make a copy, with altered children and/or properties attributes.
-        attrs = {}
+        attrs = vars(mcs).copy()
+
         if children:
             attrs['children'] = tuple(children)
 
@@ -66,7 +65,7 @@ class tokenType(type):
                 # Inherit attributes of the copied class
                 mcs,
                 mcs.__name__,
-                (mcs,),
+                (token,),
                 attrs,
         )
         return mcs_copy
@@ -77,16 +76,44 @@ class tokenType(type):
     def __delattr__(cls, key):
         raise TypeError("{name} objects are read-only".format(name=type(cls).__name__))
 
+    def __getattribute__(cls, attr):
+        """Emulate type_getattro() in Objects/typeobject.c,
+        except descriptors can be bound to classes too.
+        """
+        if attr == '__new__':
+            val = type.__getattribute__(cls, attr)
+            # python specifies type.__new__ as a special case. sadface.
+            # Otherwise you get the metaclass as the first *two* arguments.
+            result = val.__get__(None, type(cls))
+        else:
+            val = object.__getattribute__(cls, attr)
+            if hasattr(val, '__get__'):
+                result = val.__get__(cls, type(cls))
+            else:
+                result = val
+        return result
+
 
 class token(tokenType):
     """The most generic token."""
     __metaclass__ = tokenType
 
     def __new__(mcs, *children, **properties):
-        return mcs.copy(children, properties)
+        if (
+                not properties and
+                len(children) == 3 and
+                type(children[0]) is str and
+                type(children[1]) is tuple and
+                type(children[2]) is dict
+        ):
+            # used as the metaclass of a class
+            return super(token, mcs).__new__(mcs, *children)
+        else:
+            # instantiated, like a plain-old object.
+            return mcs.copy(children, properties)
 
     def __init__(cls, *children, **properties):
-        del children, properties
         # The `type` initializer takes quite different arguments.
-        # SMELL: Replace the last three arguments with None and all tests still pass...
+        # type.__init__ is a noop as far as I can tell, but it makes pylint happy.
+        del children, properties
         super(token, cls).__init__(cls, cls.__name__, cls.__bases__, cls.__dict__)

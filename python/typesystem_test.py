@@ -1,5 +1,6 @@
 # pylint:disable=missing-docstring,too-few-public-methods,no-init,invalid-name
 from classobject2 import Class, Object
+from _token import tokenType, token
 
 
 class DummyObject(object):
@@ -12,6 +13,7 @@ def pytest_generate_tests(metafunc):
         metafunc.parametrize(
             "type_,classobj", [
                 (Class, Object),
+                (tokenType, token),
             ],
         )
     else:
@@ -19,7 +21,7 @@ def pytest_generate_tests(metafunc):
             "type_,class_", [
                 (type, object),
                 (Class, Object),
-                #(tokenType, token),
+                (tokenType, token),
             ],
         )
 
