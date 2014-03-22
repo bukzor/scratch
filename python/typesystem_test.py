@@ -1,6 +1,5 @@
 # pylint:disable=missing-docstring,too-few-public-methods,no-init,invalid-name
 from classobject2 import Class, Object
-from _token import tokenType, token
 
 
 class DummyObject(object):
@@ -26,16 +25,11 @@ def pytest_generate_tests(metafunc):
 
 
 def assert_instance(type_, class_, obj, **attrs):
-    try:
-        for attr, val in attrs.items():
-            assert getattr(obj, attr) == val
+    for attr, val in attrs.items():
+        assert getattr(obj, attr) == val
 
-        assert type(obj) is class_
-        assert type(type(obj)) is type_
-    except:
-        from class2dot import class2dot
-        print class2dot(obj)
-        raise
+    assert type(obj) is class_
+    assert type(type(obj)) is type_
 
 
 def test_instantiate(type_, class_, **attrs):
@@ -48,23 +42,42 @@ def test_class_type(type_, class_):
     assert type(class_) is type_
 
 
-def assert_subclass(type_, class_, subclass, **attrs):
-    assert issubclass(subclass, class_)
-
-    test_instantiate(type_, subclass)
-    test_class_type(type_, subclass)
-
-
 def test_subclassing(type_, class_):
     class subclass(class_):
         one = 1
 
         @property
         def two(self):
+            assert type(self) is subclass
             return 2
 
-    assert_subclass(type_, class_, subclass, one=1, two=2)
-    assert_instance(type(type_), type_, subclass, one=1)
+        @staticmethod
+        def three():
+            return 3
+
+        @classmethod
+        def four(cls):
+            assert cls is subclass
+            return 4
+
+        def five(self):
+            assert type(self) is subclass
+            return 5
+
+    assert subclass.one == 1
+
+    obj = subclass()
+    assert obj.one == 1
+    assert obj.two == 2
+    assert obj.three() == 3
+    assert obj.four() == 4
+    assert obj.five() == 5
+
+    assert issubclass(subclass, class_)
+
+    test_instantiate(type_, subclass)
+    test_class_type(type_, subclass)
+    assert_instance(type(type_), type_, subclass)
 
 
 def test_instantiate_a_subclass(type_, class_):
@@ -73,6 +86,7 @@ def test_instantiate_a_subclass(type_, class_):
 
         @property
         def two(self):
+            assert type(self) is subclass2
             return 2
 
     obj = subclass2()
@@ -84,6 +98,7 @@ def test_subclass_a_subclass(type_, class_):
     class subclass3(class_):
         @property
         def one(self):
+            assert type(self) is subclass3
             return 2
 
         two = 1
@@ -92,6 +107,7 @@ def test_subclass_a_subclass(type_, class_):
 
 
 def test_subclass_a_classobj(type_, classobj):
+    del type_
     subclass = classobj()
 
     test_subclassing(classobj, subclass)
@@ -103,10 +119,11 @@ def test_classobj_properties(type_, classobj):
 
         @property
         def two(self):
+            assert issubclass(self, subclass4)
             return 2
 
     assert_instance(
-        type, 
+        type,
         type_,
         subclass4,
         one=1,
