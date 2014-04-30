@@ -2,21 +2,23 @@ from __future__ import print_function
 
 
 class LazyCall(object):
-    __nope = object()
-    __cache = __nope
-
     def __init__(self, func, *args, **kwargs):
         self.func = func
         self.args = args
         self.kwargs = kwargs
 
     def __get__(self, obj, cls):
-        cached = self.__cache
+        print('__get__')
+        result = self.func(*self.args, **self.kwargs)
 
-        if cached is LazyCall.__nope:
-            cached = self.__cache = self.func(*self.args, **self.kwargs)
+        for o in (obj, cls):
+            attrs = vars(o)
+            for attr, val in attrs.items():
+                if val is self:
+                    print('replacing %s on %s' % (attr, o))
+                    setattr(o, attr, result)
 
-        return cached
+        return result
 
 
 class DescriptoredObject(object):
