@@ -15,6 +15,11 @@ class Edges(object):
     def __str__(self):
         result = '''\
 digraph G {
+  splines=true;
+  sep="+25,25";
+  overlap=scalexy;
+  nodesep=0.6;
+  node [shape=plaintext, fontsize=11];
   compound=true;
   subgraph isinstance {
     edge [color=red, constraint=false, spline=spline];

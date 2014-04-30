@@ -1,84 +1,37 @@
 # pylint:disable=missing-docstring
-
 class Class(type):
-    def __new__(mcs, name, bases, attrs):
-        for base in bases:
-            # TypeError: metaclass conflict:
-            #    the metaclass of a derived class must be a (non-strict) subclass of the metaclasses of all its bases
-
-            assert issubclass(mcs, type(base)), (mcs, base, type(base))
-
-        try:
-            base = super(Class, mcs).__new__(
-                mcs,
-                name + 'Class',
-                (mcs,),
-                attrs,
-            )
-        except:
-            from class2dot import class2dot
-            print class2dot(mcs)
-            raise
-
-        return type.__new__(
-            base,
-            name + 'Object',
-            bases,
-            {},
-        )
+    def __getattribute__(cls, attr):
+        """Emulate type_getattro() in Objects/typeobject.c,
+        except descriptors can be bound to classes too.
+        """
+        if attr == '__new__':
+            val = type.__getattribute__(cls, attr)
+            # python specifies type.__new__ as a special case. sadface.
+            # Otherwise you get the metaclass as the first *two* arguments.
+            result = val.__get__(None, type(cls))
+        else:
+            val = object.__getattribute__(cls, attr)
+            if hasattr(val, '__get__'):
+                result = val.__get__(cls, type(cls))
+            else:
+                result = val
+        return result
 
 
 class Object(Class):
     __metaclass__ = Class
 
-    def __init__(cls, *args):
-        #raise NotImplementedError('classobj init')
-        Class.__init__(cls, *args)
-
     def __new__(mcs, name=None, bases=None, attrs=None):
         if name is bases is attrs is None:
-            return mcs.__instance('New')
-        else:
-            return Class.__new__(mcs, name, bases, attrs)
+            # Instantiated, like a normal class.
+            # Create a new class, very much like this one, but with different attrs.
+            name = mcs.__name__
+            bases = (Object,)
+            attrs = mcs.__dict__.copy()
 
-    def __call__(cls, name=None, bases=None, attrs=None):
-        if name is bases is attrs is None:
-            return cls.__instance('Call')
-        else:
-            return Class.__new__(cls, name, bases, attrs)
+        return super(Object, mcs).__new__(mcs, name, bases, attrs)
 
-    def __instance(mcs, label):
-        return Class.__new__(
-            # Type of ObjectSubNew should be ObjectSub
-            mcs,
-            mcs.__name__ + label,
-            (Class,),
-            mcs.__dict__.copy(),
-        )
-
-
-def main():
-    classes = []
-
-    classes.append(Object()()())
-
-    class subclass(Object): pass
-    classes.append(subclass()())
-
-    class subclass2(Object()): pass
-    classes.append(subclass2())
-
-    class subclass3(subclass): pass
-    classes.append(subclass3())
-
-    class subclass4(subclass2): pass
-    classes.append(subclass4())
-
-    class subclass5(subclass3()): pass
-    classes.append(subclass5())
-
-    from class2dot import class2dot
-    print class2dot(*classes)
-
-if __name__ == '__main__':
-    exit(main()) 
+    def __init__(cls, *args):
+        del args
+        # type.__init__ is a noop as far as I can tell, but it makes pylint happy.
+        super(Object, cls).__init__(cls, None, None, None)
