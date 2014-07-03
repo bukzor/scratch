@@ -15,6 +15,7 @@ class Edges(object):
     def __str__(self):
         result = '''\
 digraph G {
+  rankdir=LR;
   compound=true;
   subgraph isinstance {
     edge [color=red, constraint=false, spline=spline];
