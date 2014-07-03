@@ -158,10 +158,13 @@ class TokenTest(T.TestCase):
         assert isinstance(mammal(), token)
         assert isinstance(goat(), token)
         assert isinstance(goat(), mammal)
-
         assert isinstance(goat(), goat)
+
         # I got this wrong once.
         assert isinstance(goat(1, 2, 3), goat)
+        assert not isinstance(goat(1, 2, 3), goat(1, 2))
+
+        assert goat == goat()
 
     def test_no_class_attributes(self):
         t = token(token, a=1)
@@ -246,30 +249,11 @@ class QuestionableFeatures(T.TestCase):
 class MetaTokenTest(T.TestCase):
     """Disabled test for tokenType"""
     __test__ = True
-    def test_issubclass(self):
-        """Demonstrate issubclass behavior with tokenType."""
-        class mammal(token):
-            """The mammal token."""
-        class goat(mammal):
-            """A goat is a mammal."""
-
-        assert repr(token) == repr(token())
-        assert type.mro(token) == type.mro(token())[1:]
-
-        assert issubclass(mammal(), token)
-        assert issubclass(goat(), token)
-        assert issubclass(goat(), mammal)
-
-        assert issubclass(goat(), goat)
-        # I got this wrong once.
-        assert issubclass(goat(1, 2, 3), goat)
-        assert not issubclass(goat(1, 2, 3), goat(1, 2))
-
-        assert goat == goat()
-
     def test_repr(self):
         """token classes should have a simple representation"""
         assert str(token) == "('token',)"
+        assert repr(token) == repr(token())
+
         # a copy of token
         token2 = token(a=1)
         assert repr(token2) == "('token', {'a': 1})", repr(token2)
