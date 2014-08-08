@@ -1,14 +1,21 @@
+"""Define an immutable dictionary."""
 from collections import Mapping
 
-class FrozenDict(Mapping):
-    """An immutable dict-like object"""
+
+class fdict(Mapping):  # pylint:disable=invalid-name
+    """An immutable (frozen) dict-like object"""
     __slots__ = ('__d', '__hash')
     __d = None
     __hash = None
+
     def __new__(cls, *args, **kwargs):
-        self = object.__new__(cls) # super() is useless here. Sigh.
-        object.__setattr__(self, '_FrozenDict__d', dict(*args, **kwargs))
+        self = object.__new__(cls)  # super() is useless here. Sigh.
+        object.__setattr__(self, '_fdict__d', dict(*args, **kwargs))
         return self
+
+    def __init__(self, *args, **kwargs):
+        # immutable object is already initialized.
+        pass
 
     def __iter__(self):
         return iter(self.__d)
@@ -25,11 +32,11 @@ class FrozenDict(Mapping):
             # it's necessary to sort the items here to get a repeatable hash.
             # We can cache the result to keep the cost down, since the values won't be changing.
             result = hash(tuple(sorted(self.__d.items())))
-            object.__setattr__(self, '_FrozenDict__hash', result)
+            object.__setattr__(self, '_fdict__hash', result)
         return result
 
     def copy(self):
-        # An immutable copy is cheap.
+        """Copy the frozendict.  An immutable copy is cheap."""
         return self
 
     def update(self, *dicts, **kwargs):
@@ -37,19 +44,19 @@ class FrozenDict(Mapping):
         cls = type(self)
         all_items = self.items()
         all_items += tuple(
-                item
-                for d in dicts
-                for item in (
-                    d.items() if isinstance(d, Mapping) else d
-                )
+            item
+            for d in dicts
+            for item in (
+                d.items() if isinstance(d, Mapping) else d
+            )
         )
         all_items += kwargs.items()
         return cls(all_items)
 
-
     # Be immutable: we have no attributes.
     # This gives identical behavior to setattr/delattr/.__dict__ on a plain-old dict.
-    def __noattr(self, attr='__dict__', value=None):
+    def __noattr(self, attr='__dict__', dummy_value=None):
+        """Provide a good error message on attempts to mutate this object."""
         clsname = type(self).__name__
         raise AttributeError("{clsname!r} object has no attribute {attr!r}".format(
             clsname=clsname, attr=attr,
@@ -59,3 +66,4 @@ class FrozenDict(Mapping):
 
     def __repr__(self):
         return '%s(%r)' % (type(self).__name__, self.__d)
+
