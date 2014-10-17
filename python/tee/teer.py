@@ -3,19 +3,33 @@ Show a command's output in realtime and capture its outputs as strings,
 without deadlocking or temporary files.
 """
 import os
-from subprocess import Popen, PIPE
+from subprocess import Popen
+from threading import Thread
 
 
-class Pipe(object):
-    """a convenience object, wrapping os.pipe()"""
-    def __init__(self):
+class Tee(object):
+    result = ''
+
+    def __init__(self, out):
+        self.out = out
         self.read, self.write = os.pipe()
 
-    def close(self):
-        """close both ends of the pipe"""
-        os.close(self.read)
-        os.close(self.write)
+        self.thread = Thread(target=self.tee)
 
+    def start(self):
+        os.close(self.write)
+        self.thread.start()
+
+    def join(self):
+        self.thread.join()
+        os.close(self.read)
+        return self.result
+
+    def tee(self):
+        read = lambda: os.read(self.read, 1 << 12)
+        for line in iter(read, b''):
+            os.write(self.out, line)
+            self.result += line
 
 def run(cmd):
     """Run a command, showing its usual outputs in real time,
@@ -23,8 +37,8 @@ def run(cmd):
 
     No temporary files are used.
     """
-    stdout = Pipe()
-    stderr = Pipe()
+    stdout = Tee(1)
+    stderr = Tee(2)
 
     outputter = Popen(
         # without stdbuf, stdout doesn't show up till the cmd exits
@@ -34,29 +48,11 @@ def run(cmd):
         # close_fds=True,  # how come this isn't necessary??
     )
 
-    # deadlocks occur if any of the four below close's are deleted.
-    stdoutter = Popen(
-        ('tee', '/dev/fd/2'),
-        stdin=stdout.read,
-        stderr=PIPE,
-        close_fds=True,
-    )
-    stdout.close()
+    stdout.start()
+    stderr.start()
+    outputter.communicate()
 
-    stderrter = Popen(
-        ('tee', '/dev/fd/2'),
-        stdin=stderr.read,
-        stdout=PIPE,
-        close_fds=True,
-    )
-    stderr.close()
-
-    # Popen.communicate only coordinates pipes from a single Popen object
-    # I don't see any cleaner way to make use of the subprocess machinery -.-
-    outputter.stdout = stdoutter.stderr
-    outputter.stderr = stderrter.stdout
-
-    return outputter.communicate()
+    return stdout.join(), stderr.join()
 
 
 def demo():
@@ -68,10 +64,10 @@ def demo():
     stdout, stderr = run(cmd)
 
     print 'STDOUT:'
-    print stderr.count('\n')
+    print stdout.count('\n')
 
     print 'STDERR:'
-    print stdout.count('\n')
+    print stderr.count('\n')
 
 
 def make_outputter():
@@ -85,17 +81,23 @@ from time import sleep
 from random import random
 
 # system should not deadlock for any given value of these parameters.
-LINES = 100
-TIME = 4
+LINES = 10
+TIME = 1
 WIDTH = 79
 ERROR_RATIO = .50
 
 for i in range(LINES):
     if random() > ERROR_RATIO:
-        print('.' * WIDTH, file=stdout)
+        char = '.'
+        file = stdout
     else:
-        print('$' * WIDTH, file=stderr)
-    sleep(TIME / LINES)
+        char = '%'
+        file = stderr
+
+    for j in range(WIDTH):
+        print(char, file=file, end='')
+        sleep(TIME / LINES / WIDTH)
+    print(file=file)
 ''')
 
 
