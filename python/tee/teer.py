@@ -153,10 +153,10 @@ def demo():
     stdout, stderr, combined = run(cmd)
 
     print 'STDOUT:'
-    print stderr.count('\n')
+    print stdout.count('\n')
 
     print 'STDERR:'
-    print stdout.count('\n')
+    print stderr.count('\n')
 
     print 'COMBINED:'
     print combined.count('\n')

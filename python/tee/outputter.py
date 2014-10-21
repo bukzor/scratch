@@ -6,7 +6,7 @@ from random import random
 
 # system should not deadlock for any given value of these parameters.
 LINES = 1000
-TIME = .2
+TIME = 2
 WIDTH = 179
 ERROR_RATIO = .40
 
