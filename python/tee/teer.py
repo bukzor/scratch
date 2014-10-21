@@ -6,15 +6,38 @@ import os
 from subprocess import Popen, PIPE
 
 
+def fdclosed(fd):
+    """close a file descriptor, idempotently"""
+    try:
+        os.close(fd)
+    except OSError as err:
+        if err.errno == 9:  # bad file descriptor
+            pass  # it's already closed: ok
+        else:
+            raise
+
 class Pipe(object):
     """a convenience object, wrapping os.pipe()"""
     def __init__(self):
         self.read, self.write = os.pipe()
 
-    def close(self):
-        """close both ends of the pipe"""
-        os.close(self.read)
-        os.close(self.write)
+    def closed(self):
+        """close both ends of the pipe. idempotent."""
+        fdclosed(self.read)
+        fdclosed(self.write)
+
+    def readonly(self):
+        """close the write end of the pipe. idempotent."""
+        fdclosed(self.write)
+
+    def writeonly(self):
+        """close the read end of the pipe. idempotent."""
+        fdclosed(self.read)
+
+
+class Pty(Pipe):
+    def __init__(self):  # pylint:disable=super-init-not-called
+        self.read, self.write = os.openpty()
 
 
 def run(cmd):
@@ -23,38 +46,61 @@ def run(cmd):
 
     No temporary files are used.
     """
-    stdout = Pipe()
-    stderr = Pipe()
+    stdout_1 = Pty()  # libc uses full buffering for stdout if it doesn't see a tty
+    stdout_2 = Pipe()
+    stderr_1 = Pipe()
+    stderr_2 = Pipe()
+    # combined = Pipe()
 
+    # deadlocks occur if we have any end of a pipe open more than once
+    # best practice: close any unused pipes before spawn, closed used pipes after
+    # use close_fds to close everything bug stdout, stderr
     outputter = Popen(
-        # without stdbuf, stdout doesn't show up till the cmd exits
-        ('stdbuf', '-o0', '-e0') + cmd,
-        stdout=stdout.write,
-        stderr=stderr.write,
-        # close_fds=True,  # how come this isn't necessary??
-    )
-
-    # deadlocks occur if any of the four below close's are deleted.
-    stdoutter = Popen(
-        ('tee', '/dev/fd/2'),
-        stdin=stdout.read,
-        stderr=PIPE,
+        cmd,
+        stdout=stdout_1.write,
+        stderr=stderr_1.write,
         close_fds=True,
     )
-    stdout.close()
 
-    stderrter = Popen(
-        ('tee', '/dev/fd/2'),
-        stdin=stderr.read,
-        stdout=PIPE,
-        close_fds=True,
-    )
-    stderr.close()
+    ischild = not os.fork()
+    if ischild:
+        stdout_1.readonly()
+        stdout_2.writeonly()
+        stderr_1.closed()
+        stderr_2.closed()
+        proc = Popen(
+            ('tee', '/dev/fd/%i' % stdout_2.write),
+            stdin=stdout_1.read,
+        )
+        stdout_1.closed()
+        stdout_2.closed()
+        proc.wait()
+        exit()
+
+    ischild = not os.fork()
+    if ischild:
+        stdout_1.closed()
+        stdout_2.closed()
+        stderr_1.readonly()
+        stderr_2.writeonly()
+        proc = Popen(
+            ('tee', '/dev/fd/%i' % stderr_2.write),
+            stdin=stderr_1.read,
+        )
+        stderr_1.closed()
+        stderr_2.closed()
+        proc.wait()
+        exit()
+
+    stdout_1.closed()
+    stdout_2.readonly()
+    stderr_1.closed()
+    stderr_2.readonly()
 
     # Popen.communicate only coordinates pipes from a single Popen object
     # I don't see any cleaner way to make use of the subprocess machinery -.-
-    outputter.stdout = stdoutter.stderr
-    outputter.stderr = stderrter.stdout
+    outputter.stdout = os.fdopen(stdout_2.read)
+    outputter.stderr = os.fdopen(stderr_2.read)
 
     return outputter.communicate()
 
