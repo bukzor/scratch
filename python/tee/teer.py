@@ -3,8 +3,10 @@ Show a command's output in realtime and capture its outputs as strings,
 without deadlocking or temporary files.
 """
 import os
-from subprocess import Popen, PIPE
+from subprocess import Popen
 
+# posix standard file descriptors
+STDIN, STDOUT, STDERR = range(3)
 
 def fdclosed(fd):
     """close a file descriptor, idempotently"""
@@ -36,8 +38,64 @@ class Pipe(object):
 
 
 class Pty(Pipe):
+    """Represent a pty as a pipe"""
     def __init__(self):  # pylint:disable=super-init-not-called
         self.read, self.write = os.openpty()
+
+
+def tee(read_fd, write_fd, *other_fds):
+    """send output from read_fd to write_fd,
+    but also copy it to each of other_fds
+    """
+    ischild = not os.fork()
+    if ischild:
+        os.dup2(read_fd, STDIN)
+        os.dup2(write_fd, STDOUT)
+        os.execvp(
+            'tee',
+            ('tee', ) + tuple(
+                '/dev/fd/%i' % fd
+                for fd in other_fds
+            )
+        )  # never returns
+    os.close(read_fd)
+
+
+def _communicate_with_select(read_set):
+    """stolen from stdlib subprocess.Popen._communicate_with_select
+
+    changes:
+        arbitrary-length list of fds as input
+        deleted stdin/input support
+    """
+    import select
+    import errno
+
+    orig_read_set = read_set
+    read_set = list(read_set)
+    result = {}
+    for fd in read_set:
+        result[fd] = []
+
+    while read_set:
+        try:
+            readable, _, _ = select.select(read_set, [], [])
+        except select.error as error:
+            if error.args[0] == errno.EINTR:
+                continue
+            raise
+
+        for fd in readable:
+            data = os.read(fd, 1024)
+            if data == "":
+                os.close(fd)
+                read_set.remove(fd)
+            result[fd].append(data)
+
+    return tuple(
+        ''.join(result[fd])
+        for fd in orig_read_set
+    )
 
 
 def run(cmd):
@@ -46,63 +104,44 @@ def run(cmd):
 
     No temporary files are used.
     """
-    stdout_1 = Pty()  # libc uses full buffering for stdout if it doesn't see a tty
-    stdout_2 = Pipe()
-    stderr_1 = Pipe()
-    stderr_2 = Pipe()
-    # combined = Pipe()
+    stdout_orig = Pty()  # libc uses full buffering for stdout if it doesn't see a tty
+    stderr_orig = Pipe()
 
-    # deadlocks occur if we have any end of a pipe open more than once
-    # best practice: close any unused pipes before spawn, closed used pipes after
-    # use close_fds to close everything bug stdout, stderr
+    # deadlocks occur if we have any write-end of a pipe open more than once
+    # best practice: close any used write pipes just after spawn
     outputter = Popen(
         cmd,
-        stdout=stdout_1.write,
-        stderr=stderr_1.write,
-        close_fds=True,
+        stdout=stdout_orig.write,
+        stderr=stderr_orig.write,
     )
+    stdout_orig.readonly()  # deadlock otherwise
+    stderr_orig.readonly()  # deadlock otherwise
 
-    ischild = not os.fork()
-    if ischild:
-        stdout_1.readonly()
-        stdout_2.writeonly()
-        stderr_1.closed()
-        stderr_2.closed()
-        proc = Popen(
-            ('tee', '/dev/fd/%i' % stdout_2.write),
-            stdin=stdout_1.read,
-        )
-        stdout_1.closed()
-        stdout_2.closed()
-        proc.wait()
-        exit()
+    # start one tee each on the original stdout and stderr
+    # writing each to three places:
+    #    1. the original destination
+    #    2. a pipe just for that one stream
+    #    3. a pipe that shows the combined output
+    stdout_teed = Pipe()
+    stderr_teed = Pipe()
+    combined = Pipe()
 
-    ischild = not os.fork()
-    if ischild:
-        stdout_1.closed()
-        stdout_2.closed()
-        stderr_1.readonly()
-        stderr_2.writeonly()
-        proc = Popen(
-            ('tee', '/dev/fd/%i' % stderr_2.write),
-            stdin=stderr_1.read,
-        )
-        stderr_1.closed()
-        stderr_2.closed()
-        proc.wait()
-        exit()
+    tee(stdout_orig.read, STDOUT, stdout_teed.write, combined.write)
+    tee(stderr_orig.read, STDERR, stderr_teed.write, combined.write)
+    stdout_teed.readonly()  # deadlock otherwise
+    stderr_teed.readonly()  # deadlock otherwise
+    combined.readonly()  # deadlock otherwise
 
-    stdout_1.closed()
-    stdout_2.readonly()
-    stderr_1.closed()
-    stderr_2.readonly()
+    # communicate closes fds when it's done with them
+    result = _communicate_with_select((stdout_teed.read, stderr_teed.read, combined.read))
 
-    # Popen.communicate only coordinates pipes from a single Popen object
-    # I don't see any cleaner way to make use of the subprocess machinery -.-
-    outputter.stdout = os.fdopen(stdout_2.read)
-    outputter.stderr = os.fdopen(stderr_2.read)
+    # clean up left-over processes and pipes:
+    outputter.wait()
+    stdout_teed.closed()
+    stderr_teed.closed()
+    combined.closed()
 
-    return outputter.communicate()
+    return result
 
 
 def demo():
@@ -111,13 +150,16 @@ def demo():
     """
     cmd = ('python', 'outputter.py')
     print 'CMD:', cmd
-    stdout, stderr = run(cmd)
+    stdout, stderr, combined = run(cmd)
 
     print 'STDOUT:'
     print stderr.count('\n')
 
     print 'STDERR:'
     print stdout.count('\n')
+
+    print 'COMBINED:'
+    print combined.count('\n')
 
 
 def make_outputter():
@@ -131,17 +173,23 @@ from time import sleep
 from random import random
 
 # system should not deadlock for any given value of these parameters.
-LINES = 100
-TIME = 4
-WIDTH = 79
-ERROR_RATIO = .50
+LINES = 1000
+TIME = 2
+WIDTH = 179
+ERROR_RATIO = .40
 
 for i in range(LINES):
     if random() > ERROR_RATIO:
-        print('.' * WIDTH, file=stdout)
+        char = '.'
+        file = stdout
     else:
-        print('$' * WIDTH, file=stderr)
-    sleep(TIME / LINES)
+        char = '%'
+        file = stderr
+
+    for j in range(WIDTH):
+        print(char, file=file, end='')
+        sleep(TIME / LINES / WIDTH)
+    print(file=file)
 ''')
 
 

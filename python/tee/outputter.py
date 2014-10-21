@@ -5,14 +5,20 @@ from time import sleep
 from random import random
 
 # system should not deadlock for any given value of these parameters.
-LINES = 10
-TIME = 1
-WIDTH = 79
-ERROR_RATIO = .50
+LINES = 1000
+TIME = .2
+WIDTH = 179
+ERROR_RATIO = .40
 
 for i in range(LINES):
     if random() > ERROR_RATIO:
-        print('.' * WIDTH, file=stdout)
+        char = '.'
+        file = stdout
     else:
-        print('$' * WIDTH, file=stderr)
-    sleep(TIME / LINES)
+        char = '%'
+        file = stderr
+
+    for j in range(WIDTH):
+        print(char, file=file, end='')
+        sleep(TIME / LINES / WIDTH)
+    print(file=file)
