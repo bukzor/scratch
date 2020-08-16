@@ -1,0 +1,11 @@
+head2.IO.readline(_: Unit): IO(String)
+  use line = IO.ask<String>("get_line", "")
+  IO.end<String>(line)
+
+head2: IO(Unit)
+  get bind pure = IO.monad
+  let io0 = pure<>(Unit.new)
+  let io1 = bind<,>(io0, head2.IO.readline)
+  let io2 = bind<,>(io1, IO.print)
+  let io3 = bind<,>(io2, head2.IO.readline)
+  bind<,>(io3, IO.print)

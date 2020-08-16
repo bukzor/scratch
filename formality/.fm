@@ -1,0 +1,26 @@
+T False
+
+T True
+| true;
+
+Not(A: Type): Type
+  A -> False
+
+T Equal<A: Type> ~ (a: A, b: A)
+| same<a: A> ~ (a, a);
+
+// "Given a proof of something False, I have a proof of something that's
+// False."
+trivial(x: False): False
+  x
+
+// "Given a proof of something false, I can prove anything."
+absurd<A: Type>(false: False): A
+  case false:
+
+not_false: Not(False)
+  trivial
+
+not_false2: Not(False)
+  absurd<False>
+
