@@ -1,12 +1,18 @@
 #!/bin/bash
 set -euo pipefail
-fm="${1%%.fm}"
-tmp="fm.$(date -Ins | tr ':,' '-.')"
-mkdir -p "$tmp"
+HERE="$(dirname "$0")"
+term="$(sed -r 's/\.fm$//' <<< "$1")"
+fm="$(sed -r 's/[.0-9]*$//' <<< "$term").fm"
+tmp="log/fm.$(date -Ins | tr ':,' '-.')"
 
-cp $fm.fm $tmp
-ln -sf $PWD/.fmc $tmp
-cd $tmp
+cd "$HERE"
+mkdir -p "$tmp"
+touch "$tmp/log"
+
+# No need to download duplicates.
+cp "$fm" "$tmp"
+ln -sf "$PWD/.fmc" "$tmp"
+cd "$tmp"
 
 show() {
   cmd="$@"
@@ -14,16 +20,13 @@ show() {
   eval "$cmd"
 }
 
-show cat "$fm.fm"
+show cat "$fm"
 
-exec {orig}>&1
-exec > >(tee log)
-
-  show fm "$fm.fm"
-  show "seq 10 | fmio $fm"
-
-exec >&$orig
+{
+  show fm "$fm"
+  show "seq 10 | fmio $term"
+} | tee log
 
 echo
 echo '###'
-echo "# Saved to $tmp"
+echo "# Saved to $tmp/log"

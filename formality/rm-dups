@@ -8,10 +8,14 @@ uniq-v() {
     sed '/^$/ {N; d}'
 }
 
-md5sum */*log |
+ls -d log/fm.*/ |
+  sed 's/$/log/' |
+  xargs -r touch
+
+md5sum log/fm.*/log |
   sort |
   uniq-v -w32 |
   col 2 |
   xargs -r dirname |
-  xargs -tr rm -r \
+  xargs -rt rm -r \
 ;

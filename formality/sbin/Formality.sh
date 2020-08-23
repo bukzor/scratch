@@ -32,8 +32,8 @@ else
   git -C "$FORMALITY_PREFIX/moonad" pull --rebase=preserve origin master || true
 fi
 
-"$HERE/brew" install yarn
-set +x; eval "$(set -x; "$HERE/brew" shellenv; echo set -x)"
+brew install yarn
+set +x; eval "$(set -x; brew shellenv; echo set -x)"
 
 ( cd "$FORMALITY_PREFIX"
   if ! [[ -f package.json ]]; then

@@ -1,34 +1,30 @@
 #!/usr/bin/env python3
-"""A configurable "fizzbuzz" program.
-
-Examples:
+"""A "fizzbuzz" program.
 
     $ seq 15 20 | ./fizzbuzz
     15 fizzbuzz
     18 fizz
     20 buzz
-
-    $ seq 80 90 | ./fizzbuzz 7 13
-    84 fizz
-    91 fizzbuzz
-    98 fizz
 """
 
+FIZZ = 3
+BUZZ = 5
 
-def fizzbuzz(numbers, fizz=3, buzz=5):
+
+def fizzbuzz(numbers):
     """Fizz. Buzz."""
     for number in numbers:
         output = []
-        if number % fizz == 0:
+        if number % FIZZ == 0:
             output.append('fizz')
-        if number % buzz == 0:
+        if number % BUZZ == 0:
             output.append('buzz')
 
         if output:
             print(number, ''.join(output))
 
 
-def normalize(lines):
+def normalize_lines(lines):
     """Remove blank and commented lines. Remove leading/trailing whitespace."""
     for line in lines:
         line = line.strip()
@@ -38,19 +34,27 @@ def normalize(lines):
 
 
 def lines_to_numbers(lines):
-    for line in normalize(lines):
+    for line in lines:
         # throws ValueError on non-integer input
         yield int(line)
 
 
+def pipe(input, *functions):
+    result = input
+    for function in functions:
+        result = function(result)
+    return result
+
+
 def main():
-    from sys import argv
-    args = [int(x) for x in argv[1:]]
-
     from sys import stdin
-    numbers = lines_to_numbers(stdin)
 
-    return fizzbuzz(numbers, *args)
+    return pipe(
+        stdin,
+        normalize_lines,
+        lines_to_numbers,
+        fizzbuzz,
+    )
 
 
 if __name__ == '__main__':
