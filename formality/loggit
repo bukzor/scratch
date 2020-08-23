@@ -1,0 +1,29 @@
+#!/bin/bash
+set -euo pipefail
+fm="${1%%.fm}"
+tmp="fm.$(date -Ins | tr ':,' '-.')"
+mkdir -p "$tmp"
+
+cp $fm.fm $tmp
+ln -sf $PWD/.fmc $tmp
+cd $tmp
+
+show() {
+  cmd="$@"
+  echo -e "\n$ $cmd"
+  eval "$cmd"
+}
+
+show cat "$fm.fm"
+
+exec {orig}>&1
+exec > >(tee log)
+
+  show fm "$fm.fm"
+  show "seq 10 | fmio $fm"
+
+exec >&$orig
+
+echo
+echo '###'
+echo "# Saved to $tmp"

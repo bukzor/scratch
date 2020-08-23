@@ -1,0 +1,17 @@
+#!/bin/bash
+# Remove duplicates.
+
+uniq-v() {
+  # An inverse for uniq(1): Print only non-unique lines.
+  set -x
+  uniq --all-repeated=prepend "$@" |
+    sed '/^$/ {N; d}'
+}
+
+md5sum */*log |
+  sort |
+  uniq-v -w32 |
+  col 2 |
+  xargs -r dirname |
+  xargs -tr rm -r \
+;

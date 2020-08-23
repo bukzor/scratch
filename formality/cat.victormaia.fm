@@ -1,0 +1,52 @@
+// With the do-notation, you can implement cat as:
+
+cat.victormaia.1: IO(Unit)
+  do IO {
+    var line = IO.get_line;
+    IO.print(line);
+    cat.victormaia.1;
+  }
+
+// The do-notation for a Monad `M` is desugared as:
+// 
+// The syntax:
+//   var x = y; z
+// Becomes:
+//   Monad.bind<M>(M.monad)<_,_>(y, (x) z)
+// 
+// The syntax:
+//   y; z
+// Becomes:
+//   Monad.bind<M>(M.monad)<_,_>(y, () z)
+//
+// And the syntax:
+//   return x;
+// Becomes:
+//   Monad.pure<M>(M.monad)<>(x)
+// 
+// So, the code below is exactly equivalent to:
+cat.victormaia.2: IO(Unit)
+  Monad.bind<IO>(IO.monad)<_,_>(IO.get_line, (line)
+  Monad.bind<IO>(IO.monad)<_,_>(IO.print(line), ()
+  cat.victormaia.2))
+
+// If you wanted to avoid the do-notation, you
+// could use IO.bind instead of Monad.bind:
+cat.victormaia.3: IO(Unit)
+  IO.bind<_,_>(IO.get_line, (line)
+  IO.bind<_,_>(IO.print(line), ()
+  cat.victormaia.3))
+
+// If you don't want to use even IO.bind, you
+// can use IO constructors, IO.ask and IO.end:
+cat.victormaia.4: IO(Unit)
+  IO.ask<>("get_line", "", (line)
+  IO.ask<>("print", line, ()
+  cat.victormaia.4))
+
+// You could improve it with the "use" application,
+// which converts "use x = f y" to "f((x) y)":
+cat.victormaia.5: IO(Unit)
+  use line = IO.ask<>("get_line", "")
+  use skip = IO.ask<>("print", line)
+  cat.victormaia.5
