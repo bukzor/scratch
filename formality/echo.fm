@@ -1,0 +1,27 @@
+T echo.DecodeArgs
+| echo.DecodeArgs.new(args: String, argv: List(String));
+
+echo.decode_args(x: echo.DecodeArgs): List(String)
+  x<(x.self) List(String)>(
+    (x.args, x.argv) List.cons<>(x.args, x.argv)
+//    (x.args, x.argv) x.args<(x.args.self) List(String)>(
+//      x.argv,  // String.nil
+//      (x.args.head, x.args.tail) 
+//    List.cons<>(x.args, x.argv)
+  )
+
+
+echo.drop(_: String): IO(Unit)
+  IO.end<Unit>(Unit.new)
+
+echo.print_args(args: String): IO(Unit)
+  //IO.ask<Unit>("print", 
+  let argv = echo.decode_args(echo.DecodeArgs.new(args, List.nil<>))
+  IO.ask<Unit>("print", List.show<String>(String.show, argv),
+    echo.drop
+  )
+
+echo: IO(Unit)
+  IO.ask<Unit>("get_args", "",
+    echo.print_args
+  )

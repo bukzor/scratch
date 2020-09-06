@@ -1,0 +1,9 @@
+
+T demo
+| demo.1(x: String);
+| demo.2(y: Nat);
+
+demo.f(d: demo): Nat
+  case d:
+  | 1 => 1;
+  | 2 => Nat.add(d.y, 1);

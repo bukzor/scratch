@@ -1,0 +1,15 @@
+decode_args.show(argv: List(String)): String
+  List.show<String>(String.show, argv)
+
+decode_args(args: String): List(String)
+  ["oh", "hi"]
+
+decode_args.cli_(_: String): IO(Unit)
+  IO.ask<String>("get_line", "",
+    (line) IO.ask<Unit>("print", decode_args.show(decode_args(line)),
+      decode_args.cli_
+    )
+  )
+
+decode_args.cli: IO(Unit)
+  decode_args.cli_("wat")

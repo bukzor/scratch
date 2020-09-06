@@ -1,0 +1,57 @@
+#!/usr/bin/env python3
+"""A configurable "fizzbuzz" program.
+
+Examples:
+
+    $ seq 15 20 | ./fizzbuzz
+    15 fizzbuzz
+    18 fizz
+    20 buzz
+
+    $ seq 80 90 | ./fizzbuzz 7 13
+    84 fizz
+    91 fizzbuzz
+    98 fizz
+"""
+
+
+def fizzbuzz(numbers, fizz=3, buzz=5):
+    """Fizz. Buzz."""
+    for number in numbers:
+        output = []
+        if number % fizz == 0:
+            output.append('fizz')
+        if number % buzz == 0:
+            output.append('buzz')
+
+        if output:
+            print(number, ''.join(output))
+
+
+def normalize(lines):
+    """Remove blank and commented lines. Remove leading/trailing whitespace."""
+    for line in lines:
+        line = line.strip()
+        if not line or line.startswith('#'):
+            continue
+        yield line
+
+
+def lines_to_numbers(lines):
+    for line in normalize(lines):
+        # throws ValueError on non-integer input
+        yield int(line)
+
+
+def main():
+    from sys import argv
+    args = [int(x) for x in argv[1:]]
+
+    from sys import stdin
+    numbers = lines_to_numbers(stdin)
+
+    return fizzbuzz(numbers, *args)
+
+
+if __name__ == '__main__':
+    exit(main())

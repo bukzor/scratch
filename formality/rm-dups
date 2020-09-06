@@ -17,5 +17,5 @@ md5sum log/fm.*/log |
   uniq-v -w32 |
   col 2 |
   xargs -r dirname |
-  xargs -rt rm -r \
+  xargs -r echo rm -r \
 ;

@@ -41,3 +41,17 @@ cat: IO(Unit)
     )
   )
 ```
+
+### Even more Desugared
+
+```
+cat_(_: Unit): IO(Unit)
+  IO.ask<>("get_line", "",
+    (line) IO.ask<>("print", line,
+      () cat_()
+    )
+  )
+
+cat: IO(Unit)
+  cat_()
+```

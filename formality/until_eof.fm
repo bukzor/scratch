@@ -1,0 +1,100 @@
+cat.IO.readline<A: Type>(_: A): IO(String)
+  use line = IO.ask<String>("get_line", "")
+  IO.end<String>(line)
+
+cat.IO.eof: IO(Unit)
+  IO.end<>(Unit.new)
+
+cat.IO.drop<A: Type>(_: A): IO(Unit)
+  IO.end<>(Unit.new)
+
+cat.go(io: IO(Unit)): IO(Unit)
+  get bind pure = IO.monad
+  let io1 = bind<,>(io, cat.IO.readline<>)
+  let io2 = bind<,>(io1, IO.print)
+  cat.go(io2)
+
+
+// cat: IO(Unit)
+//  get bind pure = IO.monad
+//  let io0 = pure<>(Unit.new)
+//  cat.go(io0)
+
+// catter(_: Unit): IO(Unit)
+//  cat
+
+cat.andthen(X: Type, Y: Type): Type
+  (then: X -> IO(Y)) -> IO(Y)
+
+cat.print<A: Type>(text: String): cat.andthen(String, A)
+  IO.ask<A>("print", text)
+
+cat.print2<A: Type>(text: String, then: String -> IO(A)): IO(A)
+  IO.ask<A>("print", text, then)
+
+cat.IO.print(text: String): IO(Unit)
+  cat.print<>(text, cat.IO.drop<>)
+
+
+cat.get_line2<B:Type>(then: String -> IO(B)): IO(B)
+  IO.ask<B>("get_line", "", then)
+
+cat.get_line<B:Type>: cat.andthen(String, B)
+  IO.ask<B>("get_line", "")
+
+cat.IO.get_line: IO(String)
+  cat.get_line<>(
+    IO.end<String>
+  )
+
+cat.IO.bind<A: Type, B: Type>(a: IO(A), f: A -> IO(B)): IO(B)
+  case a:
+  | end => f(a.value);
+  | ask => IO.ask<B>(a.query, a.param,
+    (x) cat.IO.bind<A,B>(
+      a.then(x),
+      f
+    )
+  );
+
+cat.printer(line: String): IO(Unit)
+  cat.IO.bind<,>(
+    IO.ask<>("print", line, cat.IO.drop<>),
+    cat_0
+  )
+
+cat_0(_: Unit): IO(Unit)
+  cat.IO.bind<_,_>(
+    IO.ask<>("get_line", "", IO.end<String>),
+    cat.printer
+  )
+
+cat_2(_: Unit): IO(Unit)
+  IO.ask<>("get_line", "",
+    (x) cat.IO.bind<,>(
+      IO.end<String>(x),
+      cat.printer
+    )
+  )
+
+cat_4(line: String): IO(Unit)
+  IO.ask<>("print", line,
+    () IO.ask<>("get_line", "",
+      cat_4
+    )
+  )
+
+cat.handle_line<A: Type, B: Type>(then: String -> IO(B), line: String): IO(B)
+  Bool.if<>(
+    String.eql("EOF", line),
+    cat.IO.eof,
+    IO.ask<B>("print", line,
+      then
+    )
+  )
+
+cat_(_: String): IO(Unit)
+  IO.ask<>("get_line", "", cat.handle_line<String, Unit>(cat_))
+
+cat: IO(Unit)
+  cat_("wat")
