@@ -1,0 +1,5 @@
+body {
+  /* dark mode */
+  color: hsl(36deg, 10%, 90%);
+  background-color: hsl(200deg, 6%, 10%)
+};
