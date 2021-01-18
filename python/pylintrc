@@ -67,6 +67,9 @@ disable=
   no-else-return,  # I want the opposite of this check...
   useless-else-on-loop,  # I want the opposite of this check...
   redefined-builtin,
+  too-few-public-methods,
+  missing-module-docstring,
+  no-self-use,
 
 
 # Enable the message, report, category or checker with the given id(s). You can
