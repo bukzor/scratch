@@ -1,5 +1,33 @@
 body {
   /* dark mode */
   color: hsl(36deg, 10%, 90%);
-  background-color: hsl(200deg, 6%, 10%)
-};
+  background-color: hsl(200deg, 6%, 10%);
+
+  /* reset */
+  font-family: arial,x-locale-body,sans-serif;
+  letter-spacing: -.0028rem;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  font-size: 100%;
+  line-height: 1.75;
+
+  min-height: 100vh;
+  scroll-behavior: smooth;
+  text-rendering: optimizeSpeed;
+}
+
+a {
+  color: hsl(212deg 100% 60%);
+}
+
+* {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+  border: 0;
+}
+
+canvas {
+  width: 300px;
+  height: 300px;
+}

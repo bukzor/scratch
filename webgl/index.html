@@ -1,11 +1,23 @@
 <!DOCTYPE html> 
 <html>
   <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width,initial-scale=1">
+
     <link href="index.css" rel="stylesheet">
-    <script src="index.js"></script>
+    <script type="module">
+      import {webgl_demo} from './index.js'
+      webgl_demo(document.querySelector("#c"))
+    </script>
   </head>
   <body>
     <H1>WebGL First Steps</H1>
+
+    <p>
+    Working through <a href="https://webglfundamentals.org/webgl/lessons/webgl-fundamentals.html">webglfundamentals.org</a>.
+
+    <p>
     <canvas id="c"></canvas>
+
   </body>
 </html>
