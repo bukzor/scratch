@@ -1,4 +1,4 @@
-import {canvasRightSize} from './canvas_rightsize.js';
+import {webglRightSize} from './canvas_rightsize.js';
 
 
 export function webgl_demo(canvas) {
@@ -21,11 +21,14 @@ export function webgl_demo(canvas) {
 
   return Promise.all([vertexShader, fragmentShader])
     .then(shaders => createProgram(webgl, ...shaders))
-    .then(program => render(canvas, webgl, program));
+    .then(program => initialize(webgl, program))
+    .then(() => webglRightSize(webgl, draw));
 }
 
-function render(canvas, webgl, program) {
+function initialize(webgl, program) {
   var positionAttributeLocation = webgl.getAttribLocation(program, "a_position");
+
+  webgl.enableVertexAttribArray(positionAttributeLocation);
 
   var positionBuffer = webgl.createBuffer();
 
@@ -39,39 +42,30 @@ function render(canvas, webgl, program) {
   ];
   webgl.bufferData(webgl.ARRAY_BUFFER, new Float32Array(positions), webgl.STATIC_DRAW);
 
-  function draw(canvas) {
-    console.log('canvas(2):', canvas);
-    console.log('webgl(2):', webgl);
-    webgl.viewport(0, 0, canvas.width, webgl.canvas.height);
+  // Tell the attribute how to get data out of positionBuffer (ARRAY_BUFFER)
+  var size = 2;          // 2 components per iteration
+  var type = webgl.FLOAT;   // the data is 32bit floats
+  var normalize = false; // don't normalize the data
+  var stride = 0;        // 0 = move forward size * sizeof(type) each iteration to get the next position
+  var offset = 0;        // start at the beginning of the buffer
+  webgl.vertexAttribPointer(positionAttributeLocation, size, type, normalize, stride, offset)
 
-    // Clear the canvas
-    webgl.clearColor(0, 0, 0, 0);
-    webgl.clear(webgl.COLOR_BUFFER_BIT);
+  // Tell it to use our program (pair of shaders)
+  webgl.useProgram(program);
+}
 
-    // Tell it to use our program (pair of shaders)
-    webgl.useProgram(program);
+function draw(webgl) {
+  console.log('webgl(2):', webgl);
+  webgl.viewport(0, 0, webgl.canvas.width, webgl.canvas.height);
 
-    webgl.enableVertexAttribArray(positionAttributeLocation);
+  // Clear the canvas
+  webgl.clearColor(0, 0, 0, 0);
+  webgl.clear(webgl.COLOR_BUFFER_BIT);
 
-    // Bind the position buffer.
-    webgl.bindBuffer(webgl.ARRAY_BUFFER, positionBuffer);
-
-    // Tell the attribute how to get data out of positionBuffer (ARRAY_BUFFER)
-    var size = 2;          // 2 components per iteration
-    var type = webgl.FLOAT;   // the data is 32bit floats
-    var normalize = false; // don't normalize the data
-    var stride = 0;        // 0 = move forward size * sizeof(type) each iteration to get the next position
-    var offset = 0;        // start at the beginning of the buffer
-    webgl.vertexAttribPointer(positionAttributeLocation, size, type, normalize, stride, offset)
-
-    var primitiveType = webgl.TRIANGLES;
-    var offset = 0;
-    var count = 3;
-    webgl.drawArrays(primitiveType, offset, count);
-  }
-
-  canvasRightSize(canvas, draw);
-  //draw(canvas)
+  var primitiveType = webgl.TRIANGLES;
+  var offset = 0;
+  var count = 3;
+  webgl.drawArrays(primitiveType, offset, count);
 }
 
 function createShader(webgl, type, source) {
@@ -82,8 +76,9 @@ function createShader(webgl, type, source) {
   if (success) {
     return shader;
   } else {
-    console.log(webgl.getShaderInfoLog(shader));
+    var error = webgl.getShaderInfoLog(shader);
     webgl.deleteShader(shader);
+    throw error;
   }
 }
 
@@ -97,7 +92,8 @@ function createProgram(webgl, vertexShader, fragmentShader) {
   if (success) {
     return program;
   } else {
-    console.log(webgl.getProgramInfoLog(program));
+    var error = webgl.getProgramInfoLog(program)
     webgl.deleteProgram(program);
+    throw error;
   }
 }

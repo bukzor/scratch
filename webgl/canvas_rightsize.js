@@ -10,3 +10,7 @@ export function canvasRightSize(canvas, drawFn) {
   const resizeObserver = new ResizeObserver(onResize);
   resizeObserver.observe(canvas, { box: "content-box" });
 }
+
+export function webglRightSize(webgl, drawFn) {
+  canvasRightSize(webgl.canvas, canvas => drawFn(webgl));
+}
