@@ -1,0 +1,35 @@
+<!DOCTYPE html> 
+<html>
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width,initial-scale=1">
+
+    <link href="index.css" rel="stylesheet">
+    <script type="module">
+      import {webgl_demo} from './index.js'
+      webgl_demo(
+        document.querySelector("#c"),
+        document.querySelector("#x"),
+        document.querySelector("#y"),
+      )
+    </script>
+  </head>
+  <body>
+    <H1>WebGL 2D Translation</H1>
+
+    <p>
+    From https://webglfundamentals.org/webgl/lessons/webgl-2d-translation.html
+
+    <div id='webgl_demo'>
+      <div id='controls'>
+        <label>
+          x: <input id='x' type="range" />
+        </label>
+        <label>
+          y: <input id='y' type="range" />
+        </label>
+      </div>
+      <canvas id="c"></canvas>
+    </div>
+  </body>
+</html>
