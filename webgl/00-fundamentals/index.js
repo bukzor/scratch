@@ -1,4 +1,4 @@
-import {webglRightSize} from './canvas_rightsize.js';
+import {webglRightSize} from './lib/canvas_rightsize.js';
 
 
 export function webgl_demo(canvas) {
