@@ -15,7 +15,10 @@ export async function webgl_demo(canvas, slider_x, slider_y) {
   var program = W.createProgram(webgl, ...shaders)
   initialize(webgl, program)
 
-  var redraw = () => draw(webgl, program, x, y)
+  var grey = Math.random();
+  var color = [Math.random(), Math.random(), Math.random(), 1];
+
+  var redraw = () => draw(webgl, program, x, y, grey, color)
   W.rightSize(webgl, redraw)
   x.oninput = x.onchange = redraw
   y.oninput = y.onchange = redraw
@@ -56,7 +59,7 @@ function slider_max(slider, max) {
   }
 }
 
-function draw(webgl, program, x_slider, y_slider) {
+function draw(webgl, program, x_slider, y_slider, grey, color) {
   var w = webgl.canvas.width
     , h = webgl.canvas.height;
 
@@ -66,15 +69,13 @@ function draw(webgl, program, x_slider, y_slider) {
   webgl.viewport(0, 0, w, h);
 
   // Clear the canvas to grey.
-  var r = Math.random();
-  webgl.clearColor(r, r, r, 0.0);
+  webgl.clearColor(grey, grey, grey, 0.0);
   webgl.clear(webgl.COLOR_BUFFER_BIT);
 
   var translation = [
     parseInt(x_slider.value),
     parseInt(y_slider.value),
   ]
-  var color = [Math.random(), Math.random(), Math.random(), 1];
 
   // lookup uniforms
   var u_resolution = webgl.getUniformLocation(program, "u_resolution");
