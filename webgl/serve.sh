@@ -2,7 +2,7 @@
 set -eEuo pipefail
 HERE="$(cd "$(dirname "$0")"; pwd)"
 
-if ! [[ -x jekyll ]]; then
+if ! command -v jekyll >/dev/null; then
   cat >&2 <<EOF
 Jekyll not found.
 To install:
