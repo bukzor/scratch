@@ -24,60 +24,10 @@ export async function webgl_demo(canvas, slider_x, slider_y) {
   y.oninput = y.onchange = redraw
 }
 
-// Fill the buffer with texture coordinates for the F.
-function setTexcoords(gl) {
-  gl.bufferData(
-    gl.ARRAY_BUFFER,
-    new Float32Array([
-      // rectangle
-      0, 0,
-      0, 1,
-      1, 0,
-      0, 1,
-      1, 1,
-      1, 0,
-    ]),
-    gl.STATIC_DRAW,
-  );
-
-  // Create a texture.
-  var texture = gl.createTexture();
-  gl.bindTexture(gl.TEXTURE_2D, texture);
-  
-  // Fill the texture with a 1x1 blue pixel.
-  gl.texImage2D(
-    gl.TEXTURE_2D, 0,
-    gl.RGBA, 1, 1, 0,
-    gl.RGBA,
-    gl.UNSIGNED_BYTE,
-    new Uint8Array([0, 0, 255, 255]),
-  );
-  
-  // Asynchronously load an image
-  var image = new Image();
-  image.src = "resources/f-texture.png";
-  image.addEventListener('load', function() {
-    // Now that the image has loaded make copy it to the texture.
-    gl.bindTexture(gl.TEXTURE_2D, texture);
-    gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA,gl.UNSIGNED_BYTE, image);
-    gl.generateMipmap(gl.TEXTURE_2D);
-  });
-}
-
 
 function initialize(webgl, program) {
   var a_position = webgl.getAttribLocation(program, "a_position");
   webgl.enableVertexAttribArray(a_position);
-
-  // Create a buffer for texcoords.
-  var a_texcoords = gl.getAttribLocation(program, "a_texcoords");
-  gl.enableVertexAttribArray(a_texcoords);
-
-  // We'll supply texcoords as floats.
-  gl.vertexAttribPointer(a_texcoords, 2, gl.FLOAT, false, 0, 0);
-
-  // Set Texcoords.
-  setTexcoords(gl);
 
   var ab_position = webgl.createBuffer();
   webgl.bindBuffer(webgl.ARRAY_BUFFER, ab_position);

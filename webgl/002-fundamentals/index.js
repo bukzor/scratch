@@ -1,4 +1,4 @@
-import {webglRightSize} from './lib/canvas_rightsize.js';
+import {rightSize} from './lib/webgl.js';
 
 
 export function webgl_demo(canvas) {
@@ -22,7 +22,7 @@ export function webgl_demo(canvas) {
   return Promise.all([vertexShader, fragmentShader])
     .then(shaders => createProgram(webgl, ...shaders))
     .then(program => initialize(webgl, program))
-    .then(() => webglRightSize(webgl, draw));
+    .then(() => rightSize(webgl, draw));
 }
 
 function initialize(webgl, program) {
