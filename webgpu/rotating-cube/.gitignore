@@ -1,0 +1,6 @@
+node_modules/
+pnpm-lock.yaml
+Brewfile.lock.json
+tsconfig.tsbuildinfo
+.next/
+next-env.d.ts
