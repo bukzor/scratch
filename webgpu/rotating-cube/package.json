@@ -1,16 +1,14 @@
 {
   "dependencies": {
-    "codemirror": "^5.58.2",
-    "dat.gui": "^0.7.9",
-    "file-loader": "^6.2.0",
     "next": "^13.4.2",
     "react": "^18.2.0",
-    "wgpu-matrix": "^1.1.0"
+    "wgpu-matrix": "^1.1.0",
+    "raw-loader": "^4.0.2"
   },
   "devDependencies": {
+    "@webgpu/types": "^0.1.32",
     "@types/node": "20.1.4",
     "@types/react": "18.2.6",
-    "typescript": "5.0.4",
-    "raw-loader": "^4.0.2"
+    "typescript": "5.0.4"
   }
 }

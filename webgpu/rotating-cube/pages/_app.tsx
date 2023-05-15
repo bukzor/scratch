@@ -1,97 +1,224 @@
-import Head from 'next/head';
-import { AppProps } from 'next/app';
-import Link from 'next/link';
-import { useRouter } from 'next/router';
-import { useState } from 'react';
+import { mat4, vec3 } from "wgpu-matrix";
 
-import './styles.css';
-import styles from './MainLayout.module.css';
+import {
+  cubeVertexArray,
+  cubeVertexSize,
+  cubeUVOffset,
+  cubePositionOffset,
+  cubeVertexCount,
+} from "../meshes/cube";
 
-import { pages } from './samples/[slug]';
+import basicVertWGSL from "../shaders/basic.vert.wgsl";
+import vertexPositionColorWGSL from "../shaders/vertexPositionColor.frag.wgsl";
 
-const title = 'WebGPU Samples';
+import "./styles.css";
 
-const MainLayout: React.FunctionComponent<AppProps> = ({
-  Component,
-  pageProps,
-}) => {
-  const router = useRouter();
-  const samplesNames = Object.keys(pages);
+const twoCubes = async (canvas: HTMLCanvasElement) => {
+  const adapter = await navigator.gpu.requestAdapter();
+  const device = await adapter.requestDevice();
 
-  const [listExpanded, setListExpanded] = useState<boolean>(false);
+  const context = canvas.getContext("webgpu") as GPUCanvasContext;
 
-  const oldPathSyntaxMatch = router.asPath.match(/(\?wgsl=[01])#(\S+)/);
-  if (oldPathSyntaxMatch) {
-    const slug = oldPathSyntaxMatch[2];
-    router.replace(`/samples/${slug}`);
-    return <></>;
+  const devicePixelRatio = window.devicePixelRatio || 1;
+  canvas.width = canvas.clientWidth * devicePixelRatio;
+  canvas.height = canvas.clientHeight * devicePixelRatio;
+  const presentationFormat = navigator.gpu.getPreferredCanvasFormat();
+
+  context.configure({
+    device,
+    format: presentationFormat,
+    alphaMode: "premultiplied",
+  });
+
+  // Create a vertex buffer from the cube data.
+  const verticesBuffer = device.createBuffer({
+    size: cubeVertexArray.byteLength,
+    usage: GPUBufferUsage.VERTEX,
+    mappedAtCreation: true,
+  });
+  new Float32Array(verticesBuffer.getMappedRange()).set(cubeVertexArray);
+  verticesBuffer.unmap();
+
+  const pipeline = device.createRenderPipeline({
+    layout: "auto",
+    vertex: {
+      module: device.createShaderModule({
+        code: basicVertWGSL,
+      }),
+      entryPoint: "main",
+      buffers: [
+        {
+          arrayStride: cubeVertexSize,
+          attributes: [
+            {
+              // position
+              shaderLocation: 0,
+              offset: cubePositionOffset,
+              format: "float32x4",
+            },
+            {
+              // uv
+              shaderLocation: 1,
+              offset: cubeUVOffset,
+              format: "float32x2",
+            },
+          ],
+        },
+      ],
+    },
+    fragment: {
+      module: device.createShaderModule({
+        code: vertexPositionColorWGSL,
+      }),
+      entryPoint: "main",
+      targets: [
+        {
+          format: presentationFormat,
+        },
+      ],
+    },
+    primitive: {
+      topology: "triangle-list",
+
+      // Backface culling since the cube is solid piece of geometry.
+      // Faces pointing away from the camera will be occluded by faces
+      // pointing toward the camera.
+      cullMode: "back",
+    },
+
+    // Enable depth testing so that the fragment closest to the camera
+    // is rendered in front.
+    depthStencil: {
+      depthWriteEnabled: true,
+      depthCompare: "less",
+      format: "depth24plus",
+    },
+  });
+
+  const depthTexture = device.createTexture({
+    size: [canvas.width, canvas.height],
+    format: "depth24plus",
+    usage: GPUTextureUsage.RENDER_ATTACHMENT,
+  });
+
+  const uniformBufferSize = 4 * 16; // 4x4 matrix
+  const uniformBuffer = device.createBuffer({
+    size: uniformBufferSize,
+    usage: GPUBufferUsage.UNIFORM | GPUBufferUsage.COPY_DST,
+  });
+
+  const uniformBindGroup = device.createBindGroup({
+    layout: pipeline.getBindGroupLayout(0),
+    entries: [
+      {
+        binding: 0,
+        resource: {
+          buffer: uniformBuffer,
+        },
+      },
+    ],
+  });
+
+  const renderPassDescriptor: GPURenderPassDescriptor = {
+    colorAttachments: [
+      {
+        view: undefined, // Assigned later
+
+        clearValue: { r: 0.5, g: 0.5, b: 0.5, a: 1.0 },
+        loadOp: "clear",
+        storeOp: "store",
+      },
+    ],
+    depthStencilAttachment: {
+      view: depthTexture.createView(),
+
+      depthClearValue: 1.0,
+      depthLoadOp: "clear",
+      depthStoreOp: "store",
+    },
+  };
+
+  const aspect = canvas.width / canvas.height;
+  const projectionMatrix = mat4.perspective(
+    (2 * Math.PI) / 5,
+    aspect,
+    1,
+    100.0
+  );
+  const modelViewProjectionMatrix = mat4.create();
+
+  function getTransformationMatrix() {
+    const viewMatrix = mat4.identity();
+    mat4.translate(viewMatrix, vec3.fromValues(0, 0, -4), viewMatrix);
+    const now = Date.now() / 1000;
+    mat4.rotate(
+      viewMatrix,
+      vec3.fromValues(Math.sin(now), Math.cos(now), 0),
+      1,
+      viewMatrix
+    );
+
+    mat4.multiply(projectionMatrix, viewMatrix, modelViewProjectionMatrix);
+
+    return modelViewProjectionMatrix as Float32Array;
   }
 
+  function frame() {
+    const transformationMatrix = getTransformationMatrix();
+    device.queue.writeBuffer(
+      uniformBuffer,
+      0,
+      transformationMatrix.buffer,
+      transformationMatrix.byteOffset,
+      transformationMatrix.byteLength
+    );
+    renderPassDescriptor.colorAttachments[0].view = context
+      .getCurrentTexture()
+      .createView();
+
+    const commandEncoder = device.createCommandEncoder();
+    const passEncoder = commandEncoder.beginRenderPass(renderPassDescriptor);
+    passEncoder.setPipeline(pipeline);
+    passEncoder.setBindGroup(0, uniformBindGroup);
+    passEncoder.setVertexBuffer(0, verticesBuffer);
+    passEncoder.draw(cubeVertexCount, 1, 0, 0);
+    passEncoder.end();
+    device.queue.submit([commandEncoder.finish()]);
+
+    requestAnimationFrame(frame);
+  }
+  requestAnimationFrame(frame);
+};
+
+import Head from "next/head";
+import { useEffect } from "react";
+
+import styles from "../components/SampleLayout.module.css";
+
+export type SampleInit = (params: {
+  canvas: HTMLCanvasElement;
+}) => void | Promise<void>;
+
+const onLoad = () => {
+  for (const canvas of window.document.getElementsByTagName("canvas")) {
+    twoCubes(canvas);
+  }
+};
+
+export const SampleLayout = () => {
+  //window.onload = onLoad;
+  useEffect(onLoad);
+
   return (
-    <>
-      <Head>
-        <title>{title}</title>
-        <meta
-          name="description"
-          content="The WebGPU Samples are a set of samples demonstrating the use of the WebGPU API."
-        />
-        <meta
-          name="viewport"
-          content="width=device-width, initial-scale=1, shrink-to-fit=no"
-        />
-      </Head>
-      <div className={styles.wrapper}>
-        <nav
-          className={`${styles.panel} ${styles.container}`}
-          data-expanded={listExpanded}
-        >
-          <h1>
-            <Link href="/">{title}</Link>
-            <div
-              className={styles.expand}
-              onClick={() => {
-                setListExpanded(!listExpanded);
-              }}
-            ></div>
-          </h1>
-          <div className={styles.panelContents}>
-            <a href={`https://github.com/${process.env.REPOSITORY_NAME}`}>
-              Github
-            </a>
-            <hr />
-            <ul className={styles.exampleList}>
-              {samplesNames.map((slug) => {
-                const className =
-                  router.pathname === `/samples/[slug]` &&
-                  router.query['slug'] === slug
-                    ? styles.selected
-                    : undefined;
-                return (
-                  <li
-                    key={slug}
-                    className={className}
-                    onMouseOver={() => {
-                      pages[slug].render.preload();
-                    }}
-                  >
-                    <Link
-                      href={`/samples/${slug}`}
-                      onClick={() => {
-                        setListExpanded(false);
-                      }}
-                    >
-                      {slug}
-                    </Link>
-                  </li>
-                );
-              })}
-            </ul>
-          </div>
-        </nav>
-        <Component {...pageProps} />
+    <main>
+      <Head />
+      <div className={styles.canvasContainer}>
+        <canvas />
       </div>
-    </>
+    </main>
   );
 };
 
-export default MainLayout;
+const RotatingCube: () => JSX.Element = () => <SampleLayout />;
+
+export default RotatingCube;
