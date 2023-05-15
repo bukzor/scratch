@@ -1,6 +1,22 @@
+# runtime/dev dependencies:
+
+## https://nodejs.org/en
 node_modules/
+
+# local outputs of various tools:
+
+## https://pnpm.io/
 pnpm-lock.yaml
+
+## https://github.com/Homebrew/homebrew-bundle
 Brewfile.lock.json
+
+## https://www.typescriptlang.org/
 tsconfig.tsbuildinfo
+
+## https://nextjs.org/
 .next/
 next-env.d.ts
+
+# https://webpack.js.org/
+dist/
