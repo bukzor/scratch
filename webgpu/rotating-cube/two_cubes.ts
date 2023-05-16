@@ -7,11 +7,14 @@ import {
   cubeVertexCount,
 } from "./meshes/cube";
 
-import basicVertWGSL from "./shaders/basic.vert.wgsl";
-import vertexPositionColorWGSL from "./shaders/vertexPositionColor.frag.wgsl";
+import basicVertWGSL from "raw-loader!./shaders/basic.vert.wgsl";
+import vertexPositionColorWGSL from "raw-loader!./shaders/vertexPositionColor.frag.wgsl";
 
 const twoCubes = async (canvas: HTMLCanvasElement) => {
   const adapter = await navigator.gpu.requestAdapter();
+  if (adapter === null) {
+    throw new Error("adapter null");
+  }
   const device = await adapter.requestDevice();
 
   const context = canvas.getContext("webgpu") as GPUCanvasContext;
@@ -116,24 +119,25 @@ const twoCubes = async (canvas: HTMLCanvasElement) => {
     ],
   });
 
-  const renderPassDescriptor: GPURenderPassDescriptor = {
-    colorAttachments: [
-      {
-        view: undefined, // Assigned later
+  function renderPassDescriptor(view: GPUTextureView): GPURenderPassDescriptor {
+    return {
+      colorAttachments: [
+        {
+          view: view,
+          clearValue: { r: 0.5, g: 0.5, b: 0.5, a: 1.0 },
+          loadOp: "clear",
+          storeOp: "store",
+        },
+      ],
+      depthStencilAttachment: {
+        view: depthTexture.createView(),
 
-        clearValue: { r: 0.5, g: 0.5, b: 0.5, a: 1.0 },
-        loadOp: "clear",
-        storeOp: "store",
+        depthClearValue: 1.0,
+        depthLoadOp: "clear",
+        depthStoreOp: "store",
       },
-    ],
-    depthStencilAttachment: {
-      view: depthTexture.createView(),
-
-      depthClearValue: 1.0,
-      depthLoadOp: "clear",
-      depthStoreOp: "store",
-    },
-  };
+    };
+  }
 
   const aspect = canvas.width / canvas.height;
   const projectionMatrix = mat4.perspective(
@@ -169,12 +173,13 @@ const twoCubes = async (canvas: HTMLCanvasElement) => {
       transformationMatrix.byteOffset,
       transformationMatrix.byteLength
     );
-    renderPassDescriptor.colorAttachments[0].view = context
-      .getCurrentTexture()
-      .createView();
+
+    const view = context.getCurrentTexture().createView();
 
     const commandEncoder = device.createCommandEncoder();
-    const passEncoder = commandEncoder.beginRenderPass(renderPassDescriptor);
+    const passEncoder = commandEncoder.beginRenderPass(
+      renderPassDescriptor(view)
+    );
     passEncoder.setPipeline(pipeline);
     passEncoder.setBindGroup(0, uniformBindGroup);
     passEncoder.setVertexBuffer(0, verticesBuffer);

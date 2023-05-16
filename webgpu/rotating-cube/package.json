@@ -1,16 +1,16 @@
 {
   "private": true,
+  "type": "module",
   "dependencies": {
-    "next": "^13.4.2",
     "raw-loader": "^4.0.2",
-    "react": "^18.2.0",
     "webpack": "^5.82.1",
-    "wgpu-matrix": "^1.1.0"
+    "wgpu-matrix": "git@github.com:bukzor/wgpu-matrix.git"
   },
   "devDependencies": {
+    "@tsconfig/recommended": "^1.0.2",
     "@types/node": "20.1.4",
-    "@types/react": "18.2.6",
     "@webgpu/types": "^0.1.32",
+    "ts-loader": "^9.4.2",
     "typescript": "5.0.4",
     "webpack-cli": "^5.1.1"
   }
