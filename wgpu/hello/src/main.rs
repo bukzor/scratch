@@ -21,36 +21,43 @@ fn main() -> Result<()> {
     let event_loop = EventLoop::new();
     let window = WindowBuilder::new().build(&event_loop)?;
 
-    event_loop.run(make_event_handler(window))
+    let handler = Handler { window };
+    event_loop.run(move |a, b, c| handler.call(a, b, c))
 }
 
-fn make_event_handler<T>(window: Window) -> impl Fn(Event<()>, &T, &mut ControlFlow) {
-    move |event, _, control_flow| match event {
-        Event::WindowEvent { window_id, event } => {
-            if window_id == window.id() {
-                match event {
-                    WindowEvent::CloseRequested
-                    | WindowEvent::KeyboardInput {
-                        input:
-                            KeyboardInput {
-                                state: ElementState::Pressed,
-                                virtual_keycode: Some(VirtualKeyCode::Escape),
-                                ..
-                            },
-                        ..
-                    } => *control_flow = ControlFlow::Exit,
-                    _ => {}
+struct Handler {
+    window: Window,
+}
+
+impl Handler {
+    fn call<T>(&self, event: Event<()>, _: &T, control_flow: &mut ControlFlow) {
+        match event {
+            Event::WindowEvent { window_id, event } => {
+                if window_id == self.window.id() {
+                    match event {
+                        WindowEvent::CloseRequested
+                        | WindowEvent::KeyboardInput {
+                            input:
+                                KeyboardInput {
+                                    state: ElementState::Pressed,
+                                    virtual_keycode: Some(VirtualKeyCode::Escape),
+                                    ..
+                                },
+                            ..
+                        } => *control_flow = ControlFlow::Exit,
+                        _ => {}
+                    }
                 }
             }
+            Event::NewEvents(_) => todo!(),
+            Event::DeviceEvent { device_id, event } => todo!(),
+            Event::UserEvent(_) => todo!(),
+            Event::Suspended => todo!(),
+            Event::Resumed => todo!(),
+            Event::MainEventsCleared => todo!(),
+            Event::RedrawRequested(_) => todo!(),
+            Event::RedrawEventsCleared => todo!(),
+            Event::LoopDestroyed => todo!(),
         }
-        Event::NewEvents(_) => todo!(),
-        Event::DeviceEvent { device_id, event } => todo!(),
-        Event::UserEvent(_) => todo!(),
-        Event::Suspended => todo!(),
-        Event::Resumed => todo!(),
-        Event::MainEventsCleared => todo!(),
-        Event::RedrawRequested(_) => todo!(),
-        Event::RedrawEventsCleared => todo!(),
-        Event::LoopDestroyed => todo!(),
     }
 }
