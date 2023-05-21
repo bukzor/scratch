@@ -1,0 +1,4 @@
+trash/
+target/
+# not worth 57KB
+Cargo.lock
