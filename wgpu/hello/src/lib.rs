@@ -5,7 +5,7 @@ use winit::{
     window::{Window, WindowBuilder},
 };
 
-fn run() -> Result<(), _> {
+pub fn run() -> Result<(), winit::error::OsError> {
     // https://sotrh.github.io/learn-wgpu/beginner/tutorial1-window/#env-logger
     env_logger::init();
     println!("Hello, world!");
@@ -16,7 +16,7 @@ fn run() -> Result<(), _> {
     event_loop.run(make_event_handler(window))
 }
 
-fn make_event_handler<T>(window: Window) -> impl Fn(Event<()>, &T, &mut ControlFlow) {
+pub fn make_event_handler<T>(window: Window) -> impl Fn(Event<()>, &T, &mut ControlFlow) {
     move |event, _, control_flow| match event {
         Event::WindowEvent { window_id, event } => {
             if window_id == window.id() {
@@ -35,12 +35,12 @@ fn make_event_handler<T>(window: Window) -> impl Fn(Event<()>, &T, &mut ControlF
                 }
             }
         }
-        Event::NewEvents(_) => {}
-        Event::Resumed => {}
-        Event::MainEventsCleared => {}
-        Event::RedrawRequested(_) => {}
-        Event::RedrawEventsCleared => {}
-        Event::DeviceEvent { device_id, event } => todo!(),
+        Event::NewEvents(cause) => println!("new events: {cause:?}"),
+        Event::Resumed => println!("Resumed!"),
+        Event::MainEventsCleared => println!("main events cleared"),
+        Event::RedrawRequested(winid) => println!("Redraw requested: {winid:?}"),
+        Event::RedrawEventsCleared => println!("redraw events cleared"),
+        Event::DeviceEvent { .. } => todo!(),
         Event::UserEvent(_) => todo!(),
         Event::Suspended => todo!(),
         Event::LoopDestroyed => todo!(),

@@ -2,7 +2,7 @@
 type Error = Box<dyn std::error::Error>;
 pub type Result<T> = core::result::Result<T, Error>;
 
-fn main() -> Result<()> {
+pub fn main() -> Result<()> {
     use hello::*;
-    run()
+    Ok(run()?)
 }
