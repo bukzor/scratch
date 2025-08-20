@@ -4,4 +4,19 @@ version = "0.1.0"
 description = "Add your description here"
 readme = "README.md"
 requires-python = ">=3.12.1"
-dependencies = []
+dependencies = [
+    "joblib>=1.5.1",
+    "typed-diskcache>=0.5.0",
+]
+
+[dependency-groups]
+dev = [
+    "black>=25.1.0",
+    "pudb>=2025.1",
+    "pyright>=1.1.403",
+]
+
+
+[tool.pyright]
+extends = "../../pyproject.toml"
+

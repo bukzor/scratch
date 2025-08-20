@@ -68,7 +68,6 @@ norecursedirs = [
     "**/tmp*",
     "**/*tmp",
     "**/*bak",
-    "**/scratch",
 ]
 python_files = ["*.py"]
 python_classes = ["Test", "Describe"]
@@ -144,7 +143,6 @@ files = ["."]
 exclude = [
     "(^|/)venv/$",
     "(^|/)bak/$",
-    "(^|/)scratch/$",
 ]
 scripts_are_modules = true
 
@@ -187,8 +185,3 @@ disallow_untyped_calls = false
 
 enabled = true
 live_mode = true
-
-[tool.uv.workspace]
-members = [
-    "scratch/cached-generator",
-]
